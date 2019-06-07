@@ -1,0 +1,177 @@
+<title>Js获取适时获取鼠标坐标值并显示</title>
+<script src="js/numbers.js"></script>
+<script type="text/javascript">
+  Isinteger = function (obj) {
+    return Math.floor(obj) === obj
+  };
+  numformat = function (value, length) {
+    value = parseFloat(value);
+    if (Isinteger(value) || Isinteger(value * 10 ** length)) {
+      return value;
+    }
+    var temp = value * 10 ** length;
+    while (temp % 10 == 0) {
+      length--;
+    }
+    length = length < 0 ? 0 : length;
+    if (value != 0 && !value) {
+      return 0;
+    } else {
+      return !value.toFixed(length) ? 0 : value.toFixed(length);
+    }
+  };
+  var counts = 0;
+  var initpoints = [];
+  var points = [];
+  var abcd = [];
+  var xy = [];
+  var flag = 0;
+  var trans = null;
+  var mov = [];
+  var getCoordInDocumentExample = function () {
+    var coords = document.getElementById("coords");
+    coords.onmousemove = function (e) {
+      var pointer = getCoordInDocument(e);
+      var coord = document.getElementById("xy");
+      var p = [];
+      if (!trans) {
+        p[0] = pointer.x;
+        p[1] = pointer.y;
+      } else {
+        p = pointToTable(pointer, trans);
+      }
+      var x = parseFloat(numformat(p[0], 5));
+      var y = parseFloat(numformat(p[1], 5));
+      coord.innerHTML = "X,Y=(" + x + ", " + y + ")";
+      if (flag) {
+        points.push([x, y]);
+      }
+    }
+
+    coords.onclick = function (e) {
+      counts++;
+      var pointer = getCoordInDocument(e);
+      if (counts <= 3) {
+        if (counts < 3) document.getElementById('info').innerHTML = '正在初始坐标系......请输入第' + (counts + 1) + '个点的坐标，并在图上点击';
+        else { document.getElementById('info').innerHTML = '请在图上再点击一次开始录制'; document.getElementById('input').hidden = true; };
+        initpoints.push(pointer);
+        xy.push({
+          x: parseFloat(document.getElementById('i1').value),
+          y: parseFloat(document.getElementById('i2').value)
+        });
+      } else if (counts == 4) {
+        xyvector = [[xy[0].x - xy[2].x, xy[0].y - xy[2].y, xy[1].x - xy[2].x, xy[1].y - xy[2].y]];
+        cof = [[initpoints[0].x - initpoints[2].x, initpoints[0].y - initpoints[2].y, 0, 0], [0, 0, initpoints[0].x - initpoints[2].x, initpoints[0].y - initpoints[2].y],
+        [initpoints[1].x - initpoints[2].x, initpoints[1].y - initpoints[2].y, 0, 0], [0, 0, initpoints[1].x - initpoints[2].x, initpoints[1].y - initpoints[2].y]];
+        numbers.matrix.inverse(cof);
+        abcd = numbers.matrix.multiply(cof, numbers.matrix.transpose(xyvector));
+        trans = [[abcd[0], abcd[1]], [abcd[2], abcd[3]]];
+      }
+      if (counts > 3) {
+        if (counts % 2 == 0) {
+          flag = 1;
+        } else {
+          flag = 0;
+        }
+        alert(flag == 0 ? '停止录制' : '开始录制');
+      }
+    }
+  }
+  var pointToTable = function (pointer, trans) {
+    var p = numbers.matrix.multiply(trans, [[pointer.x - initpoints[2].x], [pointer.y - initpoints[2].y]]);
+    p = numbers.matrix.transpose(p);
+    p = numbers.matrix.addition(p, [[xy[2].x, xy[2].y]]);
+    p = p[0];
+
+    return p;
+  }
+  var getCoordInDocument = function (e) {
+    e = e || window.event;
+    var x = e.pageX || (e.clientX +
+      (document.documentElement.scrollLeft
+        || document.body.scrollLeft));
+    var y = e.pageY || (e.clientY +
+      (document.documentElement.scrollTop
+        || document.body.scrollTop));
+    return { 'x': x, 'y': y };
+  }
+  function pointstoarr(a, num) {
+    var obj = {};
+    arr = [];
+    obj.start = a[0][0];
+    if (num <= 2) {
+      obj.interval = a[a.length - 1][0] - a[0][0];
+      obj.data = [a[0][1], a[a.length - 1][1]];
+    } else {
+      obj.interval = (a[a.length - 1][0] - a[0][0]) / (num - 1);
+      var xwant = obj.start;
+      for (idx in a) {
+        var p = a[idx];
+        var xvalue = p[0];
+        var yvalue = p[1];
+        if (Math.abs(xwant - xvalue) < 5e-5) {
+          arr.push(yvalue);
+          xwant += obj.interval;
+        } else if (xwant < xvalue) {
+          var x1 = a[idx - 1][0];
+          var y1 = a[idx - 1][1];
+          var y = (yvalue - y1) / (xvalue - x1) * (xwant - x1) + y1;
+          arr.push(parseFloat(numformat(y, 5)));
+          xwant += obj.interval;
+        }
+      }
+      if(document.getElementById('coordtrans').checked){
+        var coordTrans={};
+        coordTrans.equation='exp((y-b)/a)';
+        coordTrans.axis=document.getElementById('paramform').param.value;
+        coordTrans.params={
+          a:parseFloat(document.getElementById('ia').value),
+          b:parseFloat(document.getElementById('ib').value)
+        }
+        obj.coord = coordTrans;
+      }
+      obj.data = arr;
+    }
+    return obj;
+  };
+  window.onload = function () {
+    getCoordInDocumentExample();
+  };
+  let result = {};
+  function next() {
+    let num = parseFloat(document.getElementById('i4').value);
+    if (!num) num = 100;
+    let linename = document.getElementById('i3').value;
+    if (!linename) {
+      result = pointstoarr(points, num);
+    } else {
+      result[linename + ''] = pointstoarr(points, num);
+    }
+    points = [];
+    document.getElementById('result').innerHTML = JSON.stringify(result);
+  }
+</script>
+<table>
+  <tr>
+    <td>
+      <div id="coords">
+        <img src="img/图2B-12.png">
+      </div>
+    </td>
+    <td>
+      <div style="width:600px;border:2px solid #e93654;"><span id="info">正在初始坐标系......请输入第1个点的坐标，并在图上点击。</span>
+        <span id="input"> x<input id="i1" size="2" />;y<input id="i2" size="2" /></span>
+      </div>
+      <div id="xy" style="width:600px;border:2px solid #336699;">&nbsp;</div>
+      <div style="width:600px;border:2px solid #18ee2a;">
+        行值<input id="i3" size="2" /> ，每行数据量<input id="i4" size="2" /> , <button onclick="next()">确认</button> <br> <input
+          type="checkbox" name="trans" id="coordtrans" />对数坐标变换： <form id="paramform"><input type="radio" name="param" id="yexp" value='y' />
+          y=exp((f(x)-b)/a),<input type="radio" name="param" id="xexp" value='x'/>y=f(aln(x)+b), a=<input id="ia"
+            size="2" />,b=<input id="ib" size="2" /> </form>
+      </div>
+      <div style="width:600px;border:2px solid #18ee2a;">
+        结果：<textarea id="result" cols="82" rows="10"></textarea>
+      </div>
+    </td>
+  </tr>
+</table>

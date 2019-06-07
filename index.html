@@ -1,0 +1,2789 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <script src="http://cdn.staticfile.org/vue/2.2.2/vue.min.js"></script>
+    <script src="js/curve.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/5.10.3/math.js"></script>
+    <script src="http://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
+    <script type="text/x-mathjax-config">
+        MathJax.Hub.Config({
+            showProcessingMessages: false,
+            elements: [''],
+            messageStyle: "none",
+            extensions: ["tex2jax.js"],
+            jax: ["input/TeX", "output/HTML-CSS"],
+            tex2jax: {
+                inlineMath:  [ ["$", "$"] ],
+                displayMath: [ ["$$","$$"] ],
+                skipTags: ['script', 'noscript', 'style', 'textarea', 'pre','code','a'],
+                ignoreClass:"comment-content"
+            },
+            "HTML-CSS": {
+                availableFonts: ["STIX","TeX"],
+                showMathMenu: false
+            }
+        });
+    </script>
+    <script type="text/javascript"
+        src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=AM_HTMLorMML-full"></script>
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="layui/css/layui.css">
+    <link rel="stylesheet" href="css/print.css" type="text/css" media="print">
+    <style>
+        .ant-layout,
+        .ant-layout-header {
+            background-color: white;
+            color: #000;
+        }
+
+        .MathJax {
+            outline: 0;
+        }
+
+        .MathJax span {
+            font-size: 16px;
+        }
+        .small .MathJax span {
+            font-size: 14px;
+        }
+    </style>
+    <script src="layui/layui.js"></script>
+    <script>
+        comfirm = function () {
+            try {
+                let str = $("textarea")[0].value;
+                global_data = JSON.parse(str);
+            } catch (error) {
+                alert('导入数据失败,请检查数据格式是否为正确的JSON数据格式！');
+            }
+            init();
+        };
+        skip = function () {
+            init();
+        }
+    </script>
+</head>
+
+<body> 
+    <div class="layui-fluide">
+        <div id="beforeload" class="layui-row" style="margin:auto;margin-top: 28px;">
+            <div class="layui-form-item layui-form-text">
+                <div class="layui-input-block">
+                    <textarea placeholder="请输入上次设计数据,如果没有请点击跳过" class="layui-textarea" cols="60" ></textarea>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <div class="layui-input-block">
+                    <button class="layui-btn" onclick="comfirm()">确认</button>
+                    <button class="layui-btn layui-btn-primary" onclick="skip()">跳过</button>
+                </div>
+            </div>
+        </div>
+        <div id="design" class="layui-row layui-hide">
+            <div class="layui-col-md9">
+                <div class="layui-collapse">
+                        <div class="layui-colla-item layui-show" id="attention">
+                                <h1 class="layui-colla-title" style="font-size: 28px">说明</h1>
+                                <div class="layui-colla-content layui-show">
+                                    <p><h3>1.电机槽型固定,尺寸可自行设定</h3> </p>
+                                    <p><h3>2.定、转子无通风道</h3> </p>
+                                    <p><h3>3.绕组型式均为单层绕组（推荐使用单层交叉式）</h3> </p>
+                                    <br>
+                                    <p><h3>本程序主要参考文献：</h3>
+                                        1.杨莉、戴文进《电机设计理论与实践》<br>
+                                        2.黄坚、郭中醒《实用电机设计计算手册》<br>
+                                        3.傅丰礼、唐孝镐《异步电动机设计手册》
+                                    </p>
+                                    
+                                    </div>
+                            </div>
+                    <div class="layui-colla-item">
+                        <h1 class="layui-colla-title" style="font-size: 28px">一、额定数据及主要尺寸</h1>
+                        <div class="layui-colla-content">
+                            <table class="layui-table">
+                                <colgroup>
+                                    <col width="30">
+                                    <col width="280">
+                                    <col width="350">
+                                    <col width="80">
+                                    <col width="110">
+                                </colgroup>
+                                <thead>
+                                    <tr>
+                                        <th></th>
+                                        <th>名称</th>
+                                        <th>符号及公式</th>
+                                        <th>数值</th>
+                                        <th>单位</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    <tr>
+                                        <td></td>
+                                        <td>型号</td>
+                                        <td><input type="text" v-model="name" size='20'></td>
+                                        <td></td>
+                                        <td></td>
+                                        
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>中心高</td>
+                                        <td>`H`</td>
+                                        <td><input type="text" v-model.number="HH" size='3'></td>
+                                        <td>`mm`</td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>输出功率</td>
+                                        <td>`P_2`</td>
+                                        <td><input type="text" v-model.number="p2" size='3'></td>
+                                        <td>`kW`</td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>外施相电压</td>
+                                        <td>`U_1`</td>
+                                        <td><input type="text" v-model.number="u1" size='3'></td>
+                                        <td>`V`</td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>功电流</td>
+                                        <td>`I_{KW}=\frac{P_{2} \times 10^{3}}{m_{1} U_{1}}`</td>
+                                        <td>{{ikw|numformat(3)}}</td>
+                                        <td>`A`</td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>效率</td>
+                                        <td>`\eta^{\prime}`</td>
+                                        <td><input type="text" v-model.number="etappercent" size='3'></td>
+                                        <td>`%`</td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>功率因数</td>
+                                        <td>`cos\phi ^{\prime}`</td>
+                                        <td><input type="text" v-model.number="cosphip" size='3'></td>
+                                        <td></td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>极数</td>
+                                        <td>`p`</td>
+                                        <td><input type="text" v-model.number="p" size='3'></td>
+                                        <td></td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>定转子槽数</td>
+                                        <td>`Q_1,Q_2`</td>
+                                        <td><input type="text" v-model.number="q1" size='3'>,
+                                            <input type="text" v-model.number="q2" size='3'></td>
+                                        <td></td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>定子每极槽数</td>
+                                        <td>`Q_{P1}=\frac{Q_{1}}{p}`</td>
+                                        <td>{{qp1}}</td>
+                                        <td></td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>转子每极槽数</td>
+                                        <td>`Q_{P2}=\frac{Q_{2}}{p}`</td>
+                                        <td>{{qp2}}</td>
+                                        <td></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td></td>
+                                        <td>定子冲片尺寸</td>
+                                        <td>`D_1,D_{i1}`</td>
+                                        <td><input type="text" v-model.number="d1" size='3'>,
+                                            <input type="text" v-model.number="di1" size='3'></td>
+                                        <td>`cm`</td>
+                                    </tr>
+
+
+                                    <tr>
+                                        <td></td>
+                                        <td>气隙长度</td>
+                                        <td>`\delta`</td>
+                                        <td><input type="text" v-model.number="delta" size='3'></td>
+                                        <td>`mm`</td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>转子冲片尺寸</td>
+                                        <td>`D_2,D_{i2}`</td>
+                                        <td>{{d2}},<input type="text" v-model.number="di2" size='3'></td>
+                                        <td>`cm`</td>
+                                    </tr>
+                                    <tr>
+                                            <td></td>
+                                            <td>定子槽尺寸<br>(梨形槽,`\alpha = 30^\circ `)
+                                                <button class="layui-btn layui-btn-radius layui-btn-xs" @click="openccc">
+                                                    <i class="layui-icon layui-icon-help"></i>
+                                                </button></td>
+                                            <td colspan="2">
+                                                <span> `b_{01}=`<input type="text" v-model.number="b01" size='1'>,</span>
+                                                <span> `b_{s1}=`<input type="text" v-model.number="bs1" size='1'>,</span>
+                                                <span> `b_{s2}=` </span> <span><input type="text" v-model.number="bs2"
+                                                        size='1'></span>
+                                                <span> `r_s=`<input type="text" v-model.number="rs" size='1'>,</span>
+                                                <br>
+                                                <span> `h_{s0}=`<input type="text" v-model.number="hs0" size='1'>,</span>
+                                                <span> `h_{s1}=`</span> <span>{{hs1|numformat(1)}},</span>
+                                                <span> `h_{s2}=` </span> <span><input type="text" v-model.number="hs2"
+                                                        size='1'></span>
+                                                <span class="hint"> ,`h_{s1}+h_{s2}=`<input type="text" v-model.number="hs1andhs2"
+                                                        size='1'></span>
+                                            </td>
+                                            <td>`mm`</td>
+                                        </tr>
+                                    <td></td>
+                                    <td>转子槽尺寸<br>(平行槽,`\alpha = 30^{\circ}`)<button
+                                            class="layui-btn layui-btn-radius layui-btn-xs" @click="openccc">
+                                            <i class="layui-icon layui-icon-help"></i>
+                                        </button></td>
+                                    <td colspan="2">
+                                        <span> `b_{02}=`<input type="text" v-model.number="b02" size='1'>,</span>
+                                        <span> `b_{R1}=` <input type="text" v-model.number="br1" size='1'>,</span>
+                                        <span> `b_{R2}=`</span><span><input type="text" v-model.number="br2"
+                                                size='1'>,</span>
+                                        <span> `r_r=`</span><span><input type="text" v-model.number="rr"
+                                                size='1'>,</span>
+                                        <br>
+                                        <span> `h_{R0}=`<input type="text" v-model.number="hr0" size='1'>,</span>
+                                        <span> `h_{R1}=`</span><span>{{hr1|numformat(1)}},</span>
+                                        <span> `h_{R2}=`</span><span>{{hr2|numformat(1)}}</span>
+                                        <span class="hint"> ,`h_{R1}+h_{R2}=`<input type="text" v-model.number="hr1andhr2"
+                                                size='1'></span>
+                                    </td>
+                                    <td>`mm`</td>
+                                    <tr>
+                                        <td></td>
+                                        <td>极距</td>
+                                        <td>`\tau_{P}=\frac{\pi D_{i1}}{p}`</td>
+                                        <td>{{taup|numformat(3)}}</td>
+                                        <td>`cm`</td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>定子齿距</td>
+                                        <td>`t_{1}=\frac{\pi D_{i1}}{Q_1}`</td>
+                                        <td>{{t1|numformat(3)}}</td>
+                                        <td>`cm`</td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>转子齿距</td>
+                                        <td>`t_{2}=\frac{\pi D_{2}}{Q_2}`</td>
+                                        <td>{{t2|numformat(3)}}</td>
+                                        <td>`cm`</td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>绕组型式
+                                            <button class="layui-btn layui-btn-radius layui-btn-xs" @click="openrzxs">
+                                                <i class="layui-icon layui-icon-help">
+                                                </i>
+                                            </button>
+                                        </td>
+                                        <td>
+                                            <select name="rzxs" v-model.number='rzxs' id="rzxs">
+                                                <option v-bind:value="1">单层链式</option>
+                                                <option v-bind:value="2">单层交叉</option>
+                                                <option v-bind:value="3">单层同心</option>
+                                            </select>
+                                        </td>
+                                        <td></td>
+                                        <td></td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>绕组节距</td>
+                                        <td colspan="2"><input type="text" v-model="ydetail" size='40'></td>
+                                        <td>槽</td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>平均节距</td>
+                                        <td>`y`</td>
+                                        <td><input type="text" v-model.number="y" size='3'></td>
+                                        <td>槽</td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>转子斜槽宽</td>
+                                        <td>`b_{SK}`</td>
+                                        <td><input type="text" v-model.number="bsk" size='3'></td>
+                                        <td>`cm`</td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>每槽导体数</td>
+                                        <td>`Z_1`</td>
+                                        <td><input type="text" v-model.number="z1" size='3'></td>
+                                        <td></td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>并联支路数</td>
+                                        <td>`a_1`</td>
+                                        <td><input type="text" v-model.number="a1" size='3'></td>
+                                        <td></td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>每相串联导体数</td>
+                                        <td>`Z_{\phi 1}=\frac{Q_{1} Z_{1}}{m_{1} a_{1}}`</td>
+                                        <td>{{zphi1}}</td>
+                                        <td></td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>定子电流初步估算值</td>
+                                        <td>`I_{1}^{\prime}=\frac{I_{KW}}{\eta^{\prime} \cos \varphi}`</td>
+                                        <td>{{i1p|numformat(3)}}</td>
+                                        <td>`A`</td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>定子电流密度</td>
+                                        <td>`J_1^{\prime}`</td>
+                                        <td><input type="text" v-model.number="j1p" size='3'></td>
+                                        <td>`A \/ mm^2`</td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>导线并绕根数<br>与截面积之积</td>
+                                        <td>`N_{1}^{\prime} A_{1}^{\prime}=\frac{I_{1}^{\prime}}{a_{1}
+                                            J_{1}^{\prime}}`</td>
+                                        <td>{{n1pa1p|numformat(3)}}</td>
+                                        <td>`mm^2`</td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>导线直径
+                                            <div class="layui-btn-group">
+                                                <button class="layui-btn layui-btn-radius layui-btn-xs"
+                                                    @click="addwire">
+                                                    <i class="layui-icon">&#xe654;</i>
+                                                </button>
+                                                <button class="layui-btn layui-btn-radius layui-btn-xs"
+                                                    @click="deletewire">
+                                                    <i class="layui-icon">&#xe640;</i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                        <td id="d1">`d_1`</td>
+                                        <td id="d1input" v-on:keyup="d1inputkeyup"><input type='text'
+                                                v-model.number='d[0]' size='3'></td>
+                                        <td>`mm`</td>
+                                    </tr>
+                                    <tr>
+
+                                        <td></td>
+                                        <td>导线根数</td>
+                                        <td id="n1">`N_1`</td>
+                                        <td id="n1input" v-on:keyup="d1inputkeyup"><input type='text'
+                                                v-model.number='n[0]' size='3'></td>
+                                        <td></td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>导线总截面积</td>
+                                        <td>`A=\Sigma _{i=1}^{n}N_i \pi d_i^2/4`</td>
+                                        <td>{{A|numformat(3)}}</td>
+                                        <td>`mm^2`</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td></td>
+                                        <td>槽面积</td>
+                                        <td>`A_s=\frac{2R+b_{s1}}{2}(h_{s1}+h_{s2}-h)+\frac{\pi R^2}{2}`</td>
+                                        <td>{{as|numformat(3)}}</td>
+                                        <td>`cm^2`</td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>槽绝缘厚度
+                                            <button class="layui-btn layui-btn-radius layui-btn-xs" @click="opencjy">
+                                                <i class="layui-icon layui-icon-help"></i>
+                                            </button>
+                                        </td>
+                                        <td>`C_i`<span class="hint">(已自动设置)</span></td>
+                                        <td><input type="text" v-model.number="ci" size='3'></td>
+                                        <td>`mm`</td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>槽楔高度</td>
+                                        <td>`h`<span class="hint">(已自动设置)</span></td>
+                                        <td><input type="text" v-model.number="h" size='3'></td>
+                                        <td>`mm`</td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>槽绝缘占面积
+                                        </td>
+                                        <td>
+                                            <label v-show="rzxs_oneortwo === 1">`A_{i}=C_{i}(2 h_{s}^{\prime}+\pi
+                                                R)`</label>
+                                            <label v-show="rzxs_oneortwo === 2">`A_{i}=C_{i}(2 h_{s}^{\prime}+\pi
+                                                R+2 R+b_{s
+                                                1})`</label>
+                                        </td>
+                                        <td>{{ai|numformat(3)}}</td>
+                                        <td>`cm^2`</td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>槽有效面积</td>
+                                        <td>`A_{e}=A_{s}-A_{i}`</td>
+                                        <td>{{ae|numformat(3)}}</td>
+                                        <td>`cm^2`</td>
+                                    </tr>
+                                    <tr class="small">
+                                        <td></td>
+                                        <td>槽满率(75%~78%)</td>
+                                        <td>`S_{f}=\Sigma_{i=1}^{n}\frac{N_{i} Z_{1} d_{i}^{\prime 2}}{A_{e}},d_i^{\prime}`
+                                            为导线绝缘后外径<button
+                                                class="layui-btn layui-btn-radius layui-btn-xs" @click="opencml">
+                                                <i class="layui-icon layui-icon-help"></i>
+                                            </button>
+                                        </td>
+                                        <td>{{sf*100|numformat(3)}}</td>
+                                        <td>%</td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>铁芯叠压系数</td>
+                                        <td>`K_{Fe}` <span class="hint">,一般取0.95(不涂漆),0.92(涂漆),或按经验选用</span></td>
+                                        <td><input type="text" v-model.number="kfe" size='3'></td>
+                                        <td></td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>铁芯长</td>
+                                        <td>`l`</td>
+                                        <td><input type="text" v-model.number="l" size='3'></td>
+                                        <td>`cm`</td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>铁芯净长(无径向风道)</td>
+                                        <td>`l_{Fe}=K_{Fe}l`</td>
+                                        <td>{{lfe|numformat(3)}}</td>
+                                        <td>`cm`</td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>铁芯有效长</td>
+                                        <td>`l_{ef}=l+2 \delta`</td>
+                                        <td>{{lef|numformat(3)}}</td>
+                                        <td>`cm`</td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>短距系数 <span class="hint">(对于单层绕组恒为1)</span></td>
+                                        <td>`K_{pl}=\sin ({y \cdot p}/Q_1 \cdot 90^{\circ})`
+                                        </td>
+                                        <td>{{kp1|numformat(3)}}</td>
+                                        <td></td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>分布系数</td>
+                                        <td>`K_{dl}=\frac{\sin (\frac{\alpha}{2} q_{1})}{q_{1} \sin
+                                            \frac{\alpha}{2}}`</td>
+                                        <td>{{kd1|numformat(3)}}</td>
+                                        <td></td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>绕组系数</td>
+                                        <td>`K_{dpl}=K_{dl} K_{pl}`</td>
+                                        <td>{{kdp1|numformat(3)}}</td>
+                                        <td></td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td>每相有效串联导体数</td>
+                                        <td>`Z_{\phi 1} K_{dpl}`</td>
+                                        <td>{{zphi1kdp1|numformat(3)}}</td>
+                                        <td></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                        </div>
+                    </div>
+
+                    <div class="layui-colla-item">
+                        <h1 id="cljs" class="layui-colla-title" style="font-size: 28px;">二、磁路计算</h1>
+                        <div class="layui-colla-content">
+                            <table class="layui-table">
+                                    <colgroup>
+                                        <col width="30">
+                                        <col width="280">
+                                        <col width="350">
+                                        <col width="80">
+                                        <col width="110">
+                                    </colgroup>
+                                <thead>
+                                        <tr>
+                                            <th></th>
+                                            <th>名称</th>
+                                            <th>符号及公式</th>
+                                            <th>数值</th>
+                                            <th>单位</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                <tr>
+                                    <td></td>
+                                    <td>满载电势标幺值</td>
+                                    <td>`1-\varepsilon_{L}^{\prime}`<span class="hint">,(可先假定为0.85~0.95,功率越大、极数越少取值越大)</span></td>
+                                    <td><input type="text" v-model.number="epsilonlp" size='3'></td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>波形系数</td>
+                                    <td>`K_{Nm}`</td>
+                                    <td><input type="text" v-model.number="knm" size='3'></td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>每极磁通量</td>
+                                    <td>`\phi=\frac{(1-\varepsilon_L^{\prime}) U_{1}}{2 K_{Nm} f Z_{\phi 1}
+                                        K_{dp1}}`</td>
+                                    <td>{{phi|numformat(5)}}</td>
+                                    <td>`Wb`</td>
+                                </tr>
+                                <tr>
+                                        <td></td>
+                                        <td>定子齿宽</td>
+                                        <td>
+                                            `b_{T1}=min(b_{T1,1},b_{T1,2})`
+                                        </td>
+                                        <td>{{bt1|numformat(3)}}</td>
+                                        <td>`cm`</td>
+                                    </tr>
+                                <tr>
+                                    <td></td>
+                                    <td></td>
+                                    <td colspan="3">`b_{T1,1}=\pi \frac{D_{i1}+2(h_{s0}+h_{s1}+h_{s2} \/ 3)}{Q_1} -
+                                        (b_{s1}+(b_{s2}-b_{s1})/3)`
+                                    </td>
+                                </tr>
+                                <tr>
+                                        <td></td>
+                                        <td></td>
+                                        <td colspan="3">
+                                            `b_{T1,2}=\pi \frac{D_{i1}+2(h_{s0}+h_{s1}+2h_{s2} \/ 3)}{Q_1} -
+                                            (b_{s1}+2(b_{s2}-b_{s1})/3)`
+                                        </td>
+                                    </tr>
+
+                                <tr>
+                                    <td></td>
+                                    <td>定子齿部截面积</td>
+                                    <td>`A_{T1}=b_{T1} l_{Fe} Q_{P 1}`</td>
+                                    <td>{{at1|numformat(3)}}</td>
+                                    <td>`cm^2`</td>
+                                </tr>
+                                <tr>
+                                        <td></td>
+                                        <td>转子齿宽</td>
+                                        <td>
+                                                `b_{T2}=min(b_{T2,1},b_{T2,2})`
+                                        </td>
+                                        <td>{{bt2|numformat(3)}}</td>
+                                        <td>`cm`</td>
+                                    </tr>
+                                <tr>
+                                        <td></td>
+                                        <td></td>
+                                        <td colspan="3">
+                                                `b_{T2,2}=\pi \frac{D_{2}+2(h_{r0}+h_{r1}+2h_{r2} \/ 3)}{Q_2} -
+                                                (b_{r1}+2(b_{r2}-b_{r1})/3)`
+                                        </td>
+                                    </tr>
+
+                                <tr>
+                                        <td></td>
+                                        <td></td>
+                                        <td colspan="3">`b_{T2,1}=\pi \frac{D_{2}+2(h_{r0}+h_{r1}+h_{r2} \/ 3)}{Q_2} -
+                                                (b_{r1}+(b_{r2}-b_{r1})/3)`
+                                        </td>
+                                    </tr>
+ 
+
+                                    <tr>
+                                <tr>
+                                    <td></td>
+                                    <td>转子齿部截面积</td>
+                                    <td>`A_{T2}=b_{T2} l_{Fe} Q_{P 2}`</td>
+                                    <td>{{at2|numformat(3)}}</td>
+                                    <td>`cm^2`</td>
+                                </tr>
+
+                                <tr>
+                                    <td></td>
+                                    <td>定子轭部磁路计算高度</td>
+                                    <td>`h_{j1}^{\prime}=\frac{D_{1}-D_{il}}{2}-h_{s}+\frac{1}{3} R`</td>
+                                    <td>{{hj1p|numformat(3)}}</td>
+                                    <td>`cm`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>定子轭部截面积</td>
+                                    <td>`A_{j1}=h_{j1}^{\prime}l_{Fe}`</td>
+                                    <td>{{aj1|numformat(3)}}</td>
+                                    <td>`cm^2`</td>
+                                </tr>
+                                <tr class="small">
+                                    <td></td>
+                                    <td>转子轭部磁路计算高度</td>
+                                    <td>`h_{j2}^{\prime}=\frac{D_{2}-D_{i 2}}{2}-h_{R}-\frac{2}{3} d_{K 2}+R/3`</td>
+                                    <td>{{hj2p|numformat(3)}}</td>
+                                    <td>`cm`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>转子轭部截面积</td>
+                                    <td>`A_{j 2}=h_{j2}^{\prime}l_{Fe}`</td>
+                                    <td>{{aj2|numformat(3)}}</td>
+                                    <td>`cm^2`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>空气隙面积</td>
+                                    <td>`A_{\delta}=\tau_{P} \cdot l_{ef}`</td>
+                                    <td>{{adelta|numformat(3)}}</td>
+                                    <td>`cm^2`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>假定饱和系数</td>
+                                    <td>`F_T^{\prime}`</td>
+                                    <td><input type="text" v-model.number="ftp" size='3'></td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>波幅系数<button class="layui-btn layui-btn-radius layui-btn-xs" @click="openbfxs">
+                                            <i class="layui-icon layui-icon-help"></i>
+                                        </button></td>
+                                    <td>`F_S=\phi _{max} / \phi _{avg}`<span class="hint">（已根据近似公式计算得出）</span></td>
+                                    <td><input type="text" v-model.number="fs" size='3'></td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>定子齿磁通密度</td>
+                                    <td>`B_{T1}=F_s \frac{\phi}{A_{T1}} \times 10^{4}`</td>
+                                    <td>{{bbt1|numformat(3)}}</td>
+                                    <td>`T`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>转子齿磁通密度</td>
+                                    <td>`B_{T2}=F_s \frac{\phi}{A_{T2}} \times 10^{4}`</td>
+                                    <td>{{bbt2|numformat(3)}}</td>
+                                    <td>`T`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>定子轭磁通密度</td>
+                                    <td>`B_{j1}=\frac{1}{2} \frac{\phi}{A_{jl}} \times 10^{4}`</td>
+                                    <td>{{bbj1|numformat(3)}}</td>
+                                    <td>`T`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>转子轭磁通密度</td>
+                                    <td>`B_{j2}=\frac{1}{2} \frac{\phi}{A_{j2}} \times 10^{4}`</td>
+                                    <td>{{bbj2|numformat(3)}}</td>
+                                    <td>`T`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>空气隙磁通密度</td>
+                                    <td>`B_{\delta}=F_{s} \frac{\phi}{A_{\delta}} \times 10^{4}`</td>
+                                    <td>{{bdelta|numformat(3)}}</td>
+                                    <td>`T`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>各磁路每厘米安匝数<button class="layui-btn layui-btn-radius layui-btn-xs"
+                                            @click="openazs">
+                                            <i class="layui-icon layui-icon-help"></i>
+                                        </button></td>
+                                    <td colspan="2">
+                                        <span>`at_{T1}=`</span><span><input type="text" v-model.number="att1" size='3'>;</span>
+                                        <span>`at_{T2}=`</span><span><input type="text" v-model.number="att2" size='3'>;</span><br>
+                                        <span>`at_{j1}=`</span><span><input type="text" v-model.number="atj1" size='3'>;</span>
+                                            <span>`at_{j2}=`</span><span><input type="text" v-model.number="atj2" size='3'>;</span>
+                                        <span class="hint">(已根据表格得出结果)</span>
+                                    </td>
+                                    <td>`A \/ cm`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>齿部磁路计算长度</td>
+                                    <td>定子：`h_{T 1}^{\prime}=h_{sl}+h_{s2}+\frac{1}{3} r_s`</td>
+                                    <td>{{ht1p|numformat(3)}}</td>
+                                    <td>`cm`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td></td>
+                                    <td>转子：`h_{T 2}^{\prime}=h_{rl}+h_{r2}+\frac{1}{3} r_r`</td>
+                                    <td>{{ht2p|numformat(3)}}</td>
+                                    <td>`cm`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>轭部磁路计算长度</td>
+                                    <td>定子：`l_{jl}^{\prime}=\frac{\pi(D_{1}-h_{j1}^{\prime})}{2 p}`</td>
+                                    <td>{{lj1p|numformat(3)}}</td>
+                                    <td>`cm`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td></td>
+                                    <td>转子：`l_{j2}^{\prime}=\frac{\pi(D_{i2}+h_{j2}^{\prime})}{2 p}`</td>
+                                    <td>{{lj2p|numformat(3)}}</td>
+                                    <td>`cm`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>卡式系数 <span class="hint">(半开口槽和半闭口槽)</span></td>
+                                    <td>`K_{c1,2}=\frac{t_{1,2}(4.4 \delta+0.75 b_{01,2})}{t_{1,2}(4.4
+                                        \delta+0.75b_{01,2})-b_{01,2}^{2}} `</td>
+                                        <td colspan="2"> 定子：{{kc1|numformat(3)}}<br>转子：{{kc2|numformat(3)}}</td>
+                                </tr>
+                                <tr class="hint">
+                                    <td></td>
+                                    <td>开口槽：`K_{c}=\frac{t(5 \delta+b_{0})}{t(5 \delta+b_{0})-b_{0}^{2}}`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>有效气隙长度</td>
+                                    <td>`\delta_{e}=\delta K_{cl} K_{C 2}`</td>
+                                    <td>{{deltae|numformat(3)}}</td>
+                                    <td>`cm`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>齿部所需安匝</td>
+                                    <td>定子：`AT_{T 1}=at_{T 1} h_{T 1}^{\prime}`</td>
+                                    <td>{{ATT1|numformat(3)}}</td>
+                                    <td>`A`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td></td>
+                                    <td>转子：`AT_{T 2}=at_{T 2} h_{T 2}^{\prime}`</td>
+                                    <td>{{ATT2|numformat(3)}}</td>
+                                    <td>`A`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>定、转子轭部磁路长度校正系数 <button class="layui-btn layui-btn-radius layui-btn-xs"
+                                            @click="openebclcdjzxs">
+                                            <i class="layui-icon layui-icon-help"> </button></td>
+                                    <td colspan="2"> 
+                                        <div class="hint"><span>定子：`h_{j1}^{\prime} \/ \tau_p = `</span><span>{{hj1p/taup|numformat(3)}}</span><br>
+                                            <span>转子：`h_{j2}^{\prime} \/ \tau_p = `</span><span>{{hj2p/taup|numformat(3)}}</span></div>
+                                        <span>定子：`C_1 = `</span><span><input type="text" v-model.number="c1" size='3'></span><br>
+                                        <span>转子：`C_2 = `</span><span><input type="text" v-model.number="c2" size='3'></span>
+                                    </td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>轭部所需安匝</td>
+                                    <td>定子：`AT_{j 1}=C_1at_{j1} l_{j 1}^{\prime}`</td>
+                                    <td>{{ATJ1|numformat(3)}}</td>
+                                    <td>`A`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td></td>
+                                    <td>转子：`AT_{j 2}=C_2at_{j2} l_{j 2}^{\prime}`</td>
+                                    <td>{{ATJ2|numformat(3)}}</td>
+                                    <td>`A`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>空气隙所需安匝</td>
+                                    <td>`AT_{\delta}=0.8 B_{\delta} \delta_{e} \times 10^{4}`</td>
+                                    <td>{{ATDELTA|numformat(3)}}</td>
+                                    <td>`A`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>饱和系数</td>
+                                    <td>`F_{T}=\frac{AT_{T 1}+AT_{T 2}+AT_{\delta}}{AT_{8}}`</td>
+                                    <td>{{ft|numformat(3)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td> <i class='layui-icon layui-icon-tips' style="color: #FF5722;"></i>
+                                        饱和系数与假设值之差 <span class="hint">(若大于规定值,则应重新设定)</span>&nbsp;</td>
+                                        <td>`\abs(F_{T}-F_{T}^{\prime}) \/ F_{T}`</td>
+                                    <td>{{diffft|numformat(3)}}</td>
+                                    <td>`%`</td>
+                                </tr>
+                                <tr class="hint">
+                                    <td></td>
+                                    <td></td>
+                                    <td>设定相对误差
+                                        <input type="text" v-model.number="limit.ft" size='3'> %
+                                    </td>
+                                    <td colspan="2"><button class="layui-btn layui-btn-radius layui-btn-xs"
+                                            @click="iterate('ft')"> <i class="layui-icon layui-icon-ok"></i>
+                                            开始自动迭代</button>
+                                    </td>
+                                </tr>
+                                <tr class="small">
+                                    <td></td>
+                                    <td>总安匝</td>
+                                    <td>`AT=AT_{T1}+AT_{T2}+AT_{j1}+AT_{j2}+AT_{\delta}`</td>
+                                    <td>{{AT|numformat(3)}}</td>
+                                    <td>`A`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>满载磁化电流</td>
+                                    <td>`I_{m}=\frac{2.22 AT p}{m_{1} Z_{\phi 1} K_{dp 1}}`</td>
+                                    <td>{{im|numformat(3)}}</td>
+                                    <td>`A`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>满载磁化电流标幺值</td>
+                                    <td>`i_{m}^{\ast}=\frac{I_{m}}{I_{KW}}`</td>
+                                    <td>{{imx|numformat(3)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>励磁电抗</td>
+                                    <td>`x_m^\ast=1/i_{m}^{\ast}`</td>
+                                    <td>{{xmx|numformat(3)}}</td>
+                                    <td></td>
+                                </tr>
+                            </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="layui-colla-item">
+                        <h1 id="csjs" class="layui-colla-title" style="font-size: 28px;">三、参数计算</h1>
+                        <div class="layui-colla-content">
+                            <table class="layui-table">
+                                
+                                    <colgroup>
+                                        <col width="30">
+                                        <col width="280">
+                                        <col width="350">
+                                        <col width="80">
+                                        <col width="110">
+                                    </colgroup>
+                                    <thead>
+                                            <tr>
+                                                <th></th>
+                                                <th>名称</th>
+                                                <th>符号及公式</th>
+                                                <th>数值</th>
+                                                <th>单位</th>
+                                            </tr>
+                                        </thead>
+                                    <tbody>
+                                <tr>
+                                    <td></td>
+                                    <td>线圈直线部分伸出铁芯长</td>
+                                    <td>`d_1`<button class="layui-btn layui-btn-radius layui-btn-xs"
+                                            @click="openzxbfcd"> <i class="layui-icon layui-icon-help"></i></button>
+                                    </td>
+                                    <td><input type="text" v-model.number="coild1" size='3'></td>
+                                    <td>`cm`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>线圈直线部分长度 </td>
+                                    <td>`l_{Bz}=l+2d_1`</td>
+                                    <td>{{lbz|numformat(3)}}</td>
+                                    <td>`cm`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>经验值 </td>
+                                    <td>`K_S`<button class="layui-btn layui-btn-radius layui-btn-xs" @click="openks"> <i
+                                                class="layui-icon layui-icon-help"> </button></td>
+                                    <td><input type="text" v-model.number="ks" size='3'></td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td></td>
+                                    <td>`\beta=\frac{y}{Q_{P 1}}`</td>
+                                    <td>{{beta|numformat(3)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>线圈实际跨距</td>
+                                    <td>`\tau_{Y}=\frac{\pi[D_{il}+2(h_{so}+h_{sl})+h_{s 2}+R]}{p} \beta`</td>
+                                    <td>{{tauy|numformat(3)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>估算线圈平均半匝长</td>
+                                    <td>`l_{z}=l_{Bz}+K_{s} \tau_r`</td>
+                                    <td>{{lz|numformat(3)}}</td>
+                                    <td>`cm`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>单层线圈端部平均长</td>
+                                    <td>`l_{s}=2 d_{1}+K_{s} \tau_{Y}`</td>
+                                    <td>{{ls|numformat(3)}}</td>
+                                    <td>`cm`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>漏抗系数</td>
+                                    <td>`C_{x}=\frac{2.63 fP_{2} l_{ef}(Z_{k 1} K_{dpl})^{2}}{p U_{1}^{2} \times
+                                        10^{5}}`</td>
+                                    <td>{{cx|numformat(3)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                        <td></td>
+                                        <td>定子槽单位漏磁导</td>
+                                        <td>`\lambda_{s 1}=K_{U 1} \lambda_{U 1}+K_{L \lambda} \lambda_{L 1}`</td>
+                                        <td>{{lambdas1|numformat(3)}}</td>
+                                        <td></td>
+                                    </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>节距漏抗系数<button
+                                        class="layui-btn layui-btn-radius layui-btn-xs" @click="openjjlkxs"> <i
+                                            class="layui-icon layui-icon-help"> </button></td>
+                                    <td colspan="2">
+                                        <span>`K_{U1}=`</span><span><input type="text" v-model.number="ku1" size='3'>;</span>
+                                        <span>`K_{L1}=`</span><span><input type="text" v-model.number="kl1" size='3'></span>
+                                        <span class="hint">(已自动设置)</span>
+                                    </td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>漏磁导</td>
+                                    <td colspan="2">
+                                            <span>`\lambda_{U1}=`</span><span>{{lambdau1|numformat(3)}};</span>
+                                            <span>`\lambda_{L1}=`</span><span><input type="text" v-model.number="lambdal1" size='3'></span>
+                                            <span class="hint">(已自动设置)</span>
+                                        </td>
+                                    <td></td>
+                                </tr>
+
+                                <tr>
+                                    <td></td>
+                                    <td>定子槽漏抗标幺值</td>
+                                    <td>`x_{si}^{\ast}=\frac{l_{1} m_{1} p \lambda_{s 1}}{l_{ef} K_{dpl}^{2} Q_{1}}
+                                        C_{x}`</td>
+                                    <td>{{xs1x|numformat(4)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                        <td></td>
+                                        <td>定子谐波漏抗标幺值</td>
+                                        <td>`x_{dl}^{\ast}=(\frac{m_{1} \tau_{p}}{\pi^{2} \delta_{e}}) \frac{\sum
+                                            S}{K_{dp 1}^{2} F_{T}} C_{x}`</td>
+                                        <td>{{xd1x|numformat(3)}}</td>
+                                        <td></td>
+                                    </tr>
+                                <tr>
+                                    <td></td>
+                                    <td></td>
+                                    <td>`\Sigma S` <span class="hint">(已自动设置)</span> <button class="layui-btn layui-btn-radius layui-btn-xs"
+                                            @click="opensigmas"> <i class="layui-icon layui-icon-help">
+                                            </i></button>
+                                    </td>
+                                    <td><input type="text" v-model.number="sigmas" size='3'></td>
+                                    <td></td>
+                                </tr>
+
+                                <tr>
+                                    <td></td>
+                                    <td>定子端部漏抗标幺值 <button class="layui-btn layui-btn-radius layui-btn-xs"
+                                            @click="opendzdblkbyz"> <i class="layui-icon layui-icon-help"></i> </button>
+                                    </td>
+                                    <td>`x_{e 1}^{\ast}=0.47(\frac{l_{s}-0.64 \tau_{Y}}{l_{ef} K_{dp 1}^{2}}) C_{x}`
+                                    </td>
+                                    <td>{{xe1x|numformat(4)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>定子漏抗标幺值</td>
+                                    <td>`x_{1}^\ast =x_{s 1}^{\ast}+x_{d 1}^{\ast}+x_{e 1}^{\ast}`</td>
+                                    <td>{{x1x|numformat(3)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr class="hint">
+                                    <td></td>
+                                    <td></td>
+                                    <td>`h \/ b_2,b_1 \/ b_2`</td>
+                                    <td>{{hs2/bs2|numformat(3)}},
+                                        {{bs1/bs2|numformat(3)}}
+                                    </td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                        <td></td>
+                                        <td>转子槽单位漏磁导</td>
+                                        <td>`\lambda_{s 2}=\lambda_{U 2}+\lambda_{L 2}`</td>
+                                        <td>{{lambdas2|numformat(3)}}</td>
+                                        <td></td>
+                                    </tr>
+                                <tr>
+                                    <td></td>
+                                    <td><button
+                                        class="layui-btn layui-btn-radius layui-btn-xs" @click="openzzlcd"> <i
+                                            class="layui-icon layui-icon-help"> </button></td>
+                                    <td colspan="2">
+                                            <span>`\lambda_{U 2}=`</span><span>{{lambdau2|numformat(3)}};</span>
+                                            <span>`\lambda_{L 2}=`</span><span>{{lambdal2|numformat(3)}};</span>
+                                            <span>`\lambda_{L}=`</span><span> <input type="text" v-model.number="lambdal" size='3'></span>
+                                            <span class="hint">(已自动设置)</span>
+                                        </td>
+                                    <td></td>
+                                </tr>
+ 
+                                <tr>
+                                    <td></td>
+                                    <td>转子槽漏抗标幺值</td>
+                                    <td>`x_{s 2}^{\ast}=\frac{l_{2} m_{1} p \lambda_{s 2}}{l_{ef} Q_{2}} C_{ x}`
+                                    </td>
+                                    <td>{{xs2x|numformat(5)}}</td>
+                                    <td></td>
+                                </tr>
+
+                                <tr>
+                                    <td></td>
+                                    <td>转子谐波漏抗标幺值</td>
+                                    <td>`x_{d 2}^{\ast}=(\frac{m_{1} \tau_{p}}{\pi^{2} \delta_{e}}) \frac{\sum
+                                        R}{F_{T}} C_{x}`</td>
+                                    <td>{{xd2x|numformat(5)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                        <td></td>
+                                        <td></td>
+                                        <td>`\Sigma R`<span class="hint">(已自动设置)</span><button class="layui-btn layui-btn-radius layui-btn-xs"
+                                                @click="opensigmaR"> <i class="layui-icon layui-icon-help"></i>
+                                            </button>
+                                        </td>
+                                        <td><input type="text" v-model.number="sigmar" size='3'></td>
+                                        <td></td>
+                                    </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>转子端环外径、<br>内径、平均直径</td>
+                                    <td colspan="2">
+                                            <span>`\phi_1=`</span><span><input type="text" v-model.number="phi1" size='3'>;</span>
+                                            <span>`\phi_2=`</span><span><input type="text" v-model.number="phi2" size='3'>;</span>
+                                            <span>`D_R=`</span><span>{{dr|numformat(3)}}</span>
+                                    <td>`mm`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>导条长度</td>
+                                    <td>`l_B`<span class="hint">(一般设置为铁芯长度`l`&nbsp;)</span></td>
+                                    <td><input type="text" v-model.number="lb" size='3'></td>
+                                    <td>`mm`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>转子端部漏抗标幺值</td>
+                                    <td>`x_{e 2}^{\ast}=\frac{0.757}{l_{ef}}(\frac{l_{B}-l}{1.13}+\frac{D_{R}}{p})
+                                        C_{x}`</td>
+                                    <td>{{xe2x|numformat(5)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>转子斜槽漏抗标幺值</td>
+                                    <td>`x_{sk}^{\ast}=0.5(\frac{b_{sk}}{t_{2}})^{2} x_{d 2}^{\ast}`</td>
+                                    <td>{{xskx|numformat(5)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>转子漏抗标幺值</td>
+                                    <td>`x_{2}^{\ast}=x_{s 2}^{\ast}+x_{\dot{d} 2}^{\ast}+x_{e 2}^{\ast}+x_{s
+                                        k}^{\ast}`</td>
+                                    <td>{{x2x|numformat(5)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>总漏抗标幺值</td>
+                                    <td>`x^{\ast}=x_{1}^{\ast}+x_{2}^{\ast}`</td>
+                                    <td>{{xx|numformat(5)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                        <td></td>
+                                        <td>定子相电阻</td>
+                                        <td>`R_{1}=\frac{\rho l_{2} Z_{41}}{a_{1} A_{1} N_{1} \times 100}`</td>
+                                        <td>{{r1|numformat(4)}}</td>
+                                        <td>`\Omega`</td>
+                                    </tr>
+                                <tr>
+                                        <td></td>
+                                        <td></td>
+                                        <td>`r_{1}^{\ast}=R_{1} \frac{I_{KW}}{U_{1}}`</td>
+                                        <td>{{r1x|numformat(4)}}</td>
+                                        <td></td>
+                                    </tr>
+
+
+                                <tr>
+                                        <td></td>
+                                        <td>导线电阻系数</td>
+                                        <td>`\rho`<button class="layui-btn layui-btn-radius layui-btn-xs"
+                                                @click="openrho"> <i class="layui-icon layui-icon-help"></i> </button>
+                                        </td>
+                                        <td><input type="text" v-model.number="rho" size='3'></td>
+                                        <td>`\Omega \cdot m m^{2} \/ m`</td>
+                                    </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>导线绝缘和引线质量系数</td>
+                                    <td>`C`<button class="layui-btn layui-btn-radius layui-btn-xs" @click="openyxzlxs">
+                                            <i class="layui-icon layui-icon-help"></i> </button>
+                                    </td>
+                                    <td><input type="text" v-model.number="c" size='3'></td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>导线质量密度</td>
+                                    <td>`\gamma`<button class="layui-btn layui-btn-radius layui-btn-xs"
+                                            @click="opengamma">
+                                            <i class="layui-icon layui-icon-help"></i> </button>
+                                    </td>
+                                    <td><input type="text" v-model.number="gamma" size='3'></td>
+                                    <td>`g \/ cm^3`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>定子导线质量</td>
+                                    <td>`G_1=C l_{z} Z_{1} Q_{1} A_{1} N_{1} \gamma \times 10^{-5}`</td>
+                                    <td>{{g|numformat(3)}}</td>
+                                    <td>`kg`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>冲剪余量</td>
+                                    <td>`\delta^{\prime}`</td>
+                                    <td><input type="text" v-model.number="cjyldelta" size='3'></td>
+                                    <td>`mm`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>硅钢片质量</td>
+                                    <td>`G_{Fe}=K_{Fe} l(D_{1}+\delta^{\prime})^{2} \times 7.8 \times 10^{-3}`</td>
+                                    <td>{{gfe|numformat(3)}}</td>
+                                    <td>`kg`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>转子电阻系数</td>
+                                    <td>`K=\frac{m_{1}(Z_{\phi 1} K_{dpl})^{2}}{10^{4}}`</td>
+                                    <td>{{k|numformat(3)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>系数</td>
+                                    <td>`K_B`<button class="layui-btn layui-btn-radius layui-btn-xs" @click="opendtxs">
+                                            <i class="layui-icon layui-icon-help"> </button></td>
+                                    <td><input type="text" v-model.number="kb" size='3'></td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>转子槽面积</td>
+                                    <td>`A_B=\frac{b_{02}+b_{R1}h_{R1}}{2}+b_{R1}h_{R2}+\frac{\pi r_R^2}{2}`</td>
+                                    <td>{{ab|numformat(3)}}</td>
+                                    <td>`cm^2`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>导条、端环电阻系数 <button class="layui-btn layui-btn-radius layui-btn-xs"
+                                        @click="opendzxs2"> <i class="layui-icon layui-icon-help"></i> </button></td>
+                                    <td colspan="2">
+                                        <span>`\rho_B=`</span><span><input type="text" v-model.number="rhob" size='3'></span><br>
+                                        <span>`\rho_R=`</span><span><input type="text" v-model.number="rhor" size='3'></span>
+                                    <td>`\Omega \cdot mm^2 \/ m`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>导条电阻</td>
+                                    <td>`R_{B}=K(\frac{K_{B} l_{B \rho_{B}}}{A_{B} Q_{2}})`</td>
+                                    <td>{{rb|numformat(3)}}</td>
+                                    <td>`\Omega`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>端环截面积</td>
+                                    <td>`A_R`</td>
+                                    <td><input type="text" v-model.number="ar" size='3'></td>
+                                    <td>`cm^2`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>端环电阻</td>
+                                    <td>`R_{R}=K(\frac{2 D_{R} \rho_{R}}{\pi p^{2} \cdot A_{R}})`</td>
+                                    <td>{{R_R|numformat(3)}}</td>
+                                    <td>`\Omega`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>导条电阻标幺值</td>
+                                    <td>`r_{B}^{\ast}=R_{B} \frac{I_{KW}}{U_{1}}`</td>
+                                    <td>{{rbx|numformat(4)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>端环电阻标幺值</td>
+                                    <td>`r_{R}^{\ast}=R_{R} \frac{I_{KW}}{U_{1}}`</td>
+                                    <td>{{R_Rx|numformat(4)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>转子电阻标幺值</td>
+                                    <td>`r_{2}^{\ast}=r_{B}^{\ast}+r_{R}^{\ast}`</td>
+                                    <td>{{r2x|numformat(4)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>满载电流有功分量</td>
+                                    <td>`i_{P}^{\ast}=\frac{1}{\eta^\prime}`</td>
+                                    <td>{{ipx|numformat(3)}}</td>
+                                    <td></td>
+                                </tr>
+
+                                <tr>
+                                    <td></td>
+                                    <td>满载电流电抗分量</td>
+                                    <td>`i_{x}^{\ast}=K_{m} x^{\ast}(i_{p})^{2}[1+(K_{m} x^{\ast}
+                                        i_{P}^{\ast})^{2}]`</td>
+                                    <td>{{ixx|numformat(3)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                        <td></td>
+                                        <td></td>
+                                        <td>`K_m=1+i_m^\ast x_1^\ast`</td>
+                                        <td>{{km|numformat(3)}}</td>
+                                        <td></td>
+                                    </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>满载电流无功分量</td>
+                                    <td>`i_{R}^{\ast}=i_{m}^{\ast}+i_{x}^{\ast}`</td>
+                                    <td>{{irx|numformat(3)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>满载电势标幺值</td>
+                                    <td>`1-\varepsilon_{L}=1-(i_{P}^{\ast} r_{1}^{\ast}+i_{R}^{\ast} x_{1}^{\ast})`
+                                    </td>
+                                    <td>{{epsilonl|numformat(5)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td> <i class='layui-icon layui-icon-tips'
+                                            style="color: #FF5722;"></i>满载电势与假设值之差 <span class="hint">(若大于规定值,需重新设定)</span></td>
+                                    <td>`abs(\varepsilon_L-\varepsilon_L^{\prime}) \/ \varepsilon_L`</td>
+                                    <td>{{diffepsilon|numformat(3)}}</td>
+                                    <td>`%`</td>
+                                </tr>
+                                <tr class="hint">
+                                    <td></td>
+                                    <td></td>
+                                    <td>设定相对误差
+                                        <input type="text" v-model.number="limit.epsilonl" size='3'> %
+                                    </td>
+                                    <td colspan="2"><button class="layui-btn layui-btn-radius layui-btn-xs"
+                                            @click="iterate('epsilonl')"> <i class="layui-icon layui-icon-ok"></i>
+                                            开始自动迭代</button></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>空载电势标幺值</td>
+                                    <td>`1-\varepsilon_{0}=1-i_{m}^{\ast} x_{1}^{\ast}`</td>
+                                    <td>{{epsilon0|numformat(3)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>空载定子齿磁通密度</td>
+                                    <td>`B_{T10}=\frac{1-\varepsilon_{0}}{1-\varepsilon_{L}} B_{T 1}`</td>
+                                    <td>{{bt10|numformat(3)}}</td>
+                                    <td>`T`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>空载转子齿磁通密度</td>
+                                    <td>`B_{T20}=\frac{1-\varepsilon_{0}}{1-\varepsilon_{L}} B_{T 2}`</td>
+                                    <td>{{bt20|numformat(3)}}</td>
+                                    <td>`T`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>空载定子轭磁通密度</td>
+                                    <td>`B_{j10}=\frac{1-\varepsilon_{0}}{1-\varepsilon_{L}} B_{j 1}`</td>
+                                    <td>{{bj10|numformat(3)}}</td>
+                                    <td>`T`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>空载转子轭磁通密度</td>
+                                    <td>`B_{j20}=\frac{1-\varepsilon_{0}}{1-\varepsilon_{L}} B_{j 2}`</td>
+                                    <td>{{bj20|numformat(3)}}</td>
+                                    <td>`T`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>空载气隙磁通密度</td>
+                                    <td>`B_{\delta 0}=\frac{1-\varepsilon_{0}}{1-\varepsilon_{L}} B_{\delta}`</td>
+                                    <td>{{bdelta0|numformat(3)}}</td>
+                                    <td>`T`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>空载每厘米安匝数<button class="layui-btn layui-btn-radius layui-btn-xs"
+                                            @click="openazs">
+                                            <i class="layui-icon layui-icon-help"></i>
+                                        </button></td>
+                                    <td colspan="2">
+                                        <span>`at_{T10}=`</span><span><input type="text" v-model.number="att10" size='3'></span>
+                                        <span>`at_{T20}=`</span><span><input type="text" v-model.number="att20" size='3'></span><br>
+                                        <span>`at_{j10}=`</span><span><input type="text" v-model.number="atj10" size='3'></span>
+                                            <span>`at_{j20}=`</span><span><input type="text" v-model.number="atj20" size='3'></span>
+                                        <span class="hint">(已根据表格得出结果)</span>
+                                    </td>
+                                    <td >`A \/ cm`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>空载定子齿安匝</td>
+                                    <td>`AT_{T 10}=at_{T 10} h_{T 1}^{\prime}`</td>
+                                    <td>{{ATT10|numformat(3)}}</td>
+                                    <td>`A`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>空载转子齿安匝</td>
+                                    <td>`AT_{T 20}=at_{T 20} h_{T 2}^{\prime}`</td>
+                                    <td>{{ATT20|numformat(3)}}</td>
+                                    <td>`A`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>定、转子轭部磁路长度校正系数 <button class="layui-btn layui-btn-radius layui-btn-xs"
+                                            @click="openebclcdjzxs">
+                                            <i class="layui-icon layui-icon-help"> </button></td>
+                                    <td colspan="2"> 
+                                        <div class="hint"><span>定子：`h_{j1}^{\prime} \/ \tau_p = `</span><span>{{hj1p/taup|numformat(3)}}</span><br>
+                                            <span>转子：`h_{j2}^{\prime} \/ \tau_p = `</span><span>{{hj2p/taup|numformat(3)}}</span></div>
+                                        <span>定子：`C_{01} = `</span><span><input type="text" v-model.number="c01" size='3'></span><br>
+                                        <span>转子：`C_{02} = `</span><span><input type="text" v-model.number="c02" size='3'></span>
+                                    </td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>空载定子轭安匝</td>
+                                    <td>`AT_{j 10}=C1_at_{j 10} l_{j 1}^{\prime}`</td>
+                                    <td>{{ATJ10|numformat(3)}}</td>
+                                    <td>`A`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>空载转子轭安匝</td>
+                                    <td>`AT_{j 20}=C_2 at_{j 20} l_{j 2}^{\prime}`</td>
+                                    <td>{{ATJ20|numformat(3)}}</td>
+                                    <td>`A`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>空载空气隙安匝</td>
+                                    <td>`AT_{\delta 0}=0.8*B_{\delta 0}*\delta _e*10^4`</td>
+                                    <td>{{ATDELTA0|numformat(3)}}</td>
+                                    <td>`A`</td>
+                                </tr>
+                                <tr class="small">
+                                    <td></td>
+                                    <td>空载总安匝</td>
+                                    <td>`AT_{0}=AT_{T 10}+AT_{T 20}+AT_{j 10}+AT_{j 20}+AT_{\delta 0}`</td>
+                                    <td>{{AT0|numformat(3)}}</td>
+                                    <td>`A`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>空载磁化电流</td>
+                                    <td>`I_{m 0}=\frac{2.22 AT_{0} p}{m_{1} Z_{\phi 1} K_{dp1}}`</td>
+                                    <td>{{im0|numformat(3)}}</td>
+                                    <td>`A`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>定子电流标幺值</td>
+                                    <td>`i_{1}^{\ast}=\sqrt{i_{P}^{\ast 2}+i_{R}^{\ast 2}}`</td>
+                                    <td>{{i1x|numformat(3)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>定子电流实际值</td>
+                                    <td>`I_1=i_1^{\ast} \cdot I_{KW}`</td>
+                                    <td>{{i1|numformat(3)}}</td>
+                                    <td>`A`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>定子电流密度</td>
+                                    <td>`J_{1}=\frac{I_{1}}{a_{1} N_{1} A_{1}}`</td>
+                                    <td>{{j1|numformat(3)}}</td>
+                                    <td>`A \/ mm^2`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>线负荷</td>
+                                    <td>`A=\frac{m_{1} Z_{\phi 1} I_{1}}{\pi D_{il}}`</td>
+                                    <td>{{AS|numformat(3)}}</td>
+                                    <td>`A \/ cm`</td>
+                                </tr>
+                                <tr>
+                                        <td></td>
+                                        <td>热负荷</td>
+                                        <td>`AJ_1`</td>
+                                        <td>{{AS*j1/100|numformat(3)}}</td>
+                                        <td>`A^2 \/ cm^3`</td>
+                                    </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>转子电流标幺值</td>
+                                    <td>`i_{2}^{\ast}=\sqrt{i_{P}^{\ast 2}+i_{X}^{\ast 2}}`</td>
+                                    <td>{{i2x|numformat(3)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>转子电流实际值</td>
+                                    <td>`I_{2}=i_{2}^{\ast} I_{KW} \frac{m_{1} Z_{\phi 1} K_{dpl}}{Q_{2}}`</td>
+                                    <td>{{i2|numformat(3)}}</td>
+                                    <td>`A`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>端环电流实际值</td>
+                                    <td>`I_{R}=I_{2} \frac{Q_{2}}{\pi p}`</td>
+                                    <td>{{ir|numformat(3)}}</td>
+                                    <td>`A`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>导条电流密度</td>
+                                    <td>`J_B=I_2/A_B`</td>
+                                    <td>{{jb|numformat(3)}}</td>
+                                    <td>`A \/ mm^2`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>端环电流密度</td>
+                                    <td>`J_R=I_R/A_R`</td>
+                                    <td>{{jr|numformat(3)}}</td>
+                                    <td>`A \/ mm^2`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>定子铜损标幺值</td>
+                                    <td>`P_{Cu 1}^{\ast}=i_{1}^{\ast 2} r_{1}^{\ast}`</td>
+                                    <td>{{pcu1x|numformat(3)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>定子铜损实际值</td>
+                                    <td>`P_{Cu 1}=P_{Cu 1}^{\ast}P_2 \times 10^3`</td>
+                                    <td>{{pcu1|numformat(0)}}</td>
+                                    <td>W</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>转子电阻损耗标幺值</td>
+                                    <td>`P_{R 2}^{\ast}=i_{2}^{\ast 2} r_{2}^{\ast}`</td>
+                                    <td>{{pr2x|numformat(3)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>转子电阻损耗实际值</td>
+                                    <td>`P_{R 2}=P_{R 2}^{\ast}P_2 \times 10^3`</td>
+                                    <td>{{pr2|numformat(0)}}</td>
+                                    <td>W</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>附加损耗标幺值 <button class="layui-btn layui-btn-radius layui-btn-xs"
+                                            @click="openpsx"> <i class="layui-icon layui-icon-help"> </button></td>
+                                    <td>`P_s^*`</td>
+                                    <td><input type="text" v-model.number="psx" size='3'></td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>附加损耗实际值</td>
+                                    <td>`P_{s}=P_{s}^{\ast}P_2 \times 10^3`</td>
+                                    <td>{{ps|numformat(0)}}</td>
+                                    <td>W</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>机械损耗实际值 <button class="layui-btn layui-btn-radius layui-btn-xs"
+                                            @click="openjxsh">
+                                            <i class="layui-icon layui-icon-help"> </button></td>
+                                    <td>`P_{fw}`</td>
+                                    <td><input type="text" v-model.number="pfw" size='3'></td>
+                                    <td>W</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>机械损耗标幺值</td>
+                                    <td>`P_{fw}^{\ast}=\frac{P_{fw}}{P_{2} \times 10^{3}}`</td>
+                                    <td>{{pfwx|numformat(5)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>定子齿体积</td>
+                                    <td>`V_{T 1}=p A_{T 1} h_{T 1}^{\prime}`</td>
+                                    <td>{{vt1|numformat(3)}}</td>
+                                    <td>`cm^3`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>定子轭体积</td>
+                                    <td>`V_{j 1}=2p A_{j 1} l_{j 1}^{\prime}`</td>
+                                    <td>{{vj1|numformat(3)}}</td>
+                                    <td>`cm^3`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>单位损耗<br>(D23,D24硅钢片,`p_{10 \/ 50}=2.1 W \/ kg`) <button
+                                            class="layui-btn layui-btn-radius layui-btn-xs" @click="opendwsh">
+                                            <i class="layui-icon layui-icon-help"></i> </button></td>
+
+                                            <td colspan="2">
+                                                <span>`p_{T1}=`</span><span><input type="text" v-model.number="pt1" size='3'></span><br>
+                                                <span>`p_{J1}=`</span><span><input type="text" v-model.number="pj1" size='3'></span>;
+                                                <span class="hint">(已自动设置)</span>
+                                            </td>
+                                    <td>`W \/ cm^3`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>定子齿、轭损耗实际值</td>
+                                    <td>`P_{T 1}=p_{TI} V_{T_{1}}`<br>`P_{jl}=p_{jl} V_{jl}`</td>
+                                    <td>{{PT1|numformat(3)}}<br>{{PJ1|numformat(3)}}</td>
+                                    <td>`W`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>定子齿、轭损耗标幺值值</td>
+                                    <td>`P_{T 1}^{\ast}`<br>`P_{jl}^{\ast}`</td>
+                                    <td>{{PT1X|numformat(5)}}<br>{{PJ1X|numformat(5)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>铁耗校正系数 <button class="layui-btn layui-btn-radius layui-btn-xs" @click="openth">
+                                            <i class="layui-icon layui-icon-help"> </button></td>
+                                    <td>`k_1,k_2`</td>
+                                    <td><input type="text" v-model.number="k1" size='3'><br>
+                                        <input type="text" v-model.number="k2" size='3'></td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>总铁耗实际值</td>
+                                    <td>`P_{Fe}=k_{1} P_{T 1}+k_{2} P_{jl}`</td>
+                                    <td>{{pfe|numformat(3)}}</td>
+                                    <td>`W`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>总铁耗标幺值</td>
+                                    <td>`P_{Fe}^{\ast}=\frac{P_{Fe}}{P_{2} \cdot 10^{3}}`</td>
+                                    <td>{{pfex|numformat(5)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>总损耗标幺值</td>
+                                    <td>`\Sigma
+                                        P^{\ast}=P_{Cu1}^{\ast}+P_{R2}^{\ast}+P_{Fe}^{\ast}+P_{s}^{\ast}+P_{fw}^{\ast}`
+                                    </td>
+                                    <td>{{px|numformat(3)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>输入功率标幺值</td>
+                                    <td>`P_{1}^{\ast}=1+\sum P^{\ast}`</td>
+                                    <td>{{p1x|numformat(4)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>总损耗比</td>
+                                    <td>`\sum p^{\ast}=\frac{\sum_{P_{i}}^{P}}{P_{i}^{i}}`</td>
+                                    <td>{{zshbpx|numformat(4)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>效率</td>
+                                    <td>`\eta=1-\sum p^{\ast}`</td>
+                                    <td>{{eta|numformat(4)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td> <i class='layui-icon layui-icon-tips'
+                                            style="color: #FF5722;"></i>效率与假设值之差<span class="hint">(若大于规定值,则应重新设定)</span></td>
+                                    <td>`abs(\eta - \eta ^{\prime}) \/ \eta `</td>
+                                    <td>{{diffeta|numformat(3)}}</td>
+                                    <td>`%`</td>
+                                </tr>
+                                <tr class="hint">
+                                    <td></td>
+                                    <td></td>
+                                    <td>设定相对误差
+                                        <input type="text" v-model.number="limit.eta" size='3'> %
+                                    </td>
+                                    <td colspan="2"><button class="layui-btn layui-btn-radius layui-btn-xs"
+                                            @click="iterate('eta')"> <i class="layui-icon layui-icon-ok"></i>
+                                            开始自动迭代</button></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>功率因数</td>
+                                    <td>`\cos \varphi=\frac{1}{i_{1}^{\ast} \eta}`</td>
+                                    <td>{{cosphi|numformat(4)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr class="small">
+                                    <td></td>
+                                    <td>转差率</td>
+                                    <td>`s_N=\frac{P_{R2}^{\ast}}{1+P_{R2}^{\ast}+P_{Fe}^{\ast}-(P_{T 1}^{\ast}+P_{j
+                                        1}^{\ast})+P_s^{\ast}+P_{fw}^{\ast}}`</td>
+                                    <td>{{sn|numformat(4)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>转速</td>
+                                    <td>`n=\frac{120 f(1-s_{N})}{p}`</td>
+                                    <td>{{nn|numformat(2)}}</td>
+                                    <td>`r \/ min`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>最大转矩倍数</td>
+                                    <td>`T_{M}=\frac{1-s_{N}}{2(r_{1}^{\ast}+\sqrt{r_{1}^{\ast 2}+x^{\ast 2}})}`</td>
+                                    <td>{{tm|numformat(3)}}</td>
+                                    <td></td>
+                                </tr>
+                            </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="layui-colla-item">
+                        <h1 id="qdjs" class="layui-colla-title" style="font-size: 28px">四、起动计算</h1>
+                        <div class="layui-colla-content">
+                            <table class="layui-table">
+                                    <colgroup>
+                                        <col width="30">
+                                        <col width="280">
+                                        <col width="350">
+                                        <col width="80">
+                                        <col width="110">
+                                    </colgroup>
+
+                                <thead>
+                                        <tr>
+                                            <th></th>
+                                            <th>名称</th>
+                                            <th>符号及公式</th>
+                                            <th>数值</th>
+                                            <th>单位</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                <tr>
+                                    <td></td>
+                                    <td>起动电流假定值</td>
+                                    <td><span>`I_{st}^{\prime}=(2.5 ~ 3.5) T_{M} I_{KW}=`</span>
+                                        <span>{{istp1|numformat(3)}}~{{istp2|numformat(3)}}</span>
+                                    </td>
+                                    <td><input type="text" v-model.number="istp" size='3'></td>
+                                    <td>`A`</td>
+                                </tr>
+                                <tr>
+                                        <td></td>
+                                        <td>虚构磁通密度</td>
+                                        <td>`B_{L}=\frac{AT_{(st)}}{1.6 \delta \beta_{c}} \times 10^{-4}`</td>
+                                        <td>{{bl|numformat(3)}}</td>
+                                        <td>`T`</td>
+                                    </tr>
+                                <tr class="small">
+                                    <td></td>
+                                    <td></td>
+                                    <td>`AT_{(st)}=I_{st}^{\prime} \frac{Z_{1}}{a_{1}} \times 0.707 [K_{U 1}+(K_{d
+                                        1})^{2} K_{pl} \frac{Q_{1}}{Q_{2}}] \sqrt{1-\varepsilon_{0}}`</td>
+                                    <td>{{atst|numformat(3)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td></td>
+                                    <td>`\beta_{c}=0.64+2.5 \sqrt{\frac{\delta}{t_{1}+t_{2}}}`</td>
+                                    <td>{{betac|numformat(3)}}</td>
+                                    <td></td>
+                                </tr>
+
+                                <tr>
+                                    <td></td>
+                                    <td>漏抗变化系数</td>
+                                    <td>`K_Z`<span class="hint">(已自动设置)</span> <button class="layui-btn layui-btn-radius layui-btn-xs"
+                                            @click="openkz">
+                                            <i class="layui-icon layui-icon-help"> </i></button></td>
+                                    <td><input type="text" v-model.number="kz" size='3'></td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>定子齿顶宽度的减少</td>
+                                    <td>`C_{s 1}=(t_{1}-b_{01})(1-K_{z})`</td>
+                                    <td>{{cs1|numformat(3)}}</td>
+                                    <td>`cm`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>转子齿顶宽度的减少</td>
+                                    <td>`C_{s 2}=(t_{2}-b_{02})(1-K_{z})`</td>
+                                    <td>{{cs2|numformat(3)}}</td>
+                                    <td>`cm`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td><span class="hint">`\Delta \lambda_{U1}`</span> <button class="layui-btn layui-btn-radius layui-btn-xs"
+                                            @click="opendeltalambdau1"> <i class="layui-icon layui-icon-help"></i>
+                                        </button>
+                                    </td>
+                                    <td>`\Delta \lambda_{U 1}=\frac{h_{so}+0.58 h_{s1}}{b_{01}}(\frac{C_{s
+                                        1}}{C_{s1}+1.5 b_{01}})`</td>
+                                    <td>{{deltalambdau1|numformat(3)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>起动时定子槽<br>单位漏磁导</td>
+                                    <td>`\lambda_{s1(st)}=K_{U 1}(\lambda_{U 1}-\Delta \lambda_{U
+                                        1})+K_{L1}\lambda_{L1}`</td>
+                                    <td>{{lambdas1st|numformat(3)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>起动时定子槽漏抗</td>
+                                    <td>`x_{s1(st)}^{\ast}=\frac{\lambda_{s1(st)}}{\lambda_{s1}} x_{s1}^{\ast}`</td>
+                                    <td>{{xs1stx|numformat(4)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>起动时定子谐波漏抗</td>
+                                    <td>`x_{d1(st)}^{\ast}=K_Zx_{d1}^{\ast}`</td>
+                                    <td>{{xd1stx|numformat(4)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>定子起动漏抗</td>
+                                    <td>`x_{1(st)}^{\ast}=x_{s1(st)}^{\ast}+x_{d1(st)}^{\ast}+x_{e 1}^{\ast}`</td>
+                                    <td>{{x1stx|numformat(4)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>转子导条高度 <span class="hint">（对铸铝转子不包括槽口高`h_{R0}`）</span></td>
+                                    <td>`h_B=h_{R1}+h_{R2}+r_R`</td>
+                                    <td>{{hb|numformat(3)}}</td>
+                                    <td>`cm`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>转子导条宽与槽宽之比 <span class="hint">（铸铝转子约为1）</span></td>
+                                    <td>`b_B/b_R`</td>
+                                    <td>{{bbdbr|numformat(3)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>考虑集肤效应时<br>导条相对高度</td>
+                                    <td>`\xi=0.1987 h_{B} \sqrt{\frac{b_{B} f}{b_{R} \rho_{B}}}`</td>
+                                    <td>{{xi|numformat(3)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>转子集肤效应系数 <button class="layui-btn layui-btn-radius layui-btn-xs"
+                                            @click="openzzjfxyxs"> <i class="layui-icon layui-icon-help"></i>
+                                        </button>
+                                    </td>
+                                    <td colspan="2"> <span>`r_{~}/r_0=`</span> <span><input type="text" v-model.number="jfxyxsr" size='3'></span>;
+                                        <span>`x_{~}/x_0=`</span> <span><input type="text" v-model.number="jfxyxsx" size='3'></span>;
+                                    </td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td><button class="layui-btn layui-btn-radius layui-btn-xs"
+                                            @click="opendeltalambdau2">
+                                            <i class="layui-icon layui-icon-help">
+                                            </i></button>
+                                    </td>
+                                    <td>`\Delta lambda_{U2}=h_{r0}/b_{02}(\frac {C_{s2}}{C_{s2}+b_{02}})`</td>
+                                    <td>{{deltalambdau2|numformat(3)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>起动时转子槽<br>单位漏磁导</td>
+                                    <td>`\lambda_{s2(st)}=(\lambda_{U 2}-\Delta \lambda_{U
+                                        2})+\frac{x_{\sim}}{x_0}\lambda_{L2}`</td>
+                                    <td>{{lambdas2st|numformat(3)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>起动时转子槽漏抗</td>
+                                    <td>`x_{s 2(st)}^{\ast}=\frac{\lambda_{s 2(st)}}{\lambda_{s 2}} x_{s 2}^{\ast}`
+                                    </td>
+                                    <td>{{xs2stx|numformat(5)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>起动时转子谐波漏抗</td>
+                                    <td>`x_{d 2(st)}^{\ast}=K_{Z} x_{d 2}^{\ast}`</td>
+                                    <td>{{xd2stx|numformat(5)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>起动时转子斜槽漏抗</td>
+                                    <td>`x_{sk(st)}^{\ast}=K_{Z} x_{sk}^{\ast}`</td>
+                                    <td>{{xskstx|numformat(5)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>转子起动漏抗</td>
+                                    <td>`x_{2(st)}^{\ast}=x_{s 2(st)}^{\ast}+x_{d 2(st)}^{\ast}+x_{e
+                                        2}^{\ast}+x_{sk(st)}^{\ast}`</td>
+                                    <td>{{x2stx|numformat(5)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>起动总漏抗</td>
+                                    <td>`x_{(st)}^{\ast}=x_{1(st)}^{\ast}+x_{2(st)}^{\ast}`</td>
+                                    <td>{{xstx|numformat(4)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>转子起动电阻</td>
+                                    <td>`r_{2(st)}^{\ast}=[\frac{r_{~}}{r_{0}}(\frac{l}{l_{B}})+\frac{l_{B}-l}{l_{B}}]
+                                        r_{B}^{\ast}+r_{R}^{\ast}`</td>
+                                    <td>{{r2stx|numformat(4)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>起动总电阻</td>
+                                    <td>`r_{(st)}^{\ast}=r_{1}^{\ast}+r_{2(st)}^{\ast}`</td>
+                                    <td>{{rstx|numformat(3)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>起动总阻抗</td>
+                                    <td>`z_{(st)}^{\ast}=\sqrt{r_{(st)}^{\ast}+x_{(st)}^{\ast 2}}`</td>
+                                    <td>{{zstx|numformat(3)}}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>起动电流</td>
+                                    <td>`I_{st}=\frac{I_{KW}}{z_{(st)}^{\ast}}`</td>
+                                    <td>{{ist|numformat(3)}}</td>
+                                    <td>`A`</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>起动电流倍数</td>
+                                    <td>`i_{st}=\frac{I_{st}}{I_{1}}`</td>
+                                    <td>{{istbeishu|numformat(3)}} </td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td><i class='layui-icon layui-icon-tips'
+                                            style="color: #FF5722;"></i>起动电流与假设值之差<span class="hint">(若大于规定值,则应重新设定)</span></td>
+                                    <td>`|I_{st}-I_{st}^{\prime}| \/ I_{st}`</td>
+                                    <td>{{diffist|numformat(3)}}</td>
+                                    <td>`%`</td>
+                                </tr>
+                                <tr class="hint">
+                                    <td></td>
+                                    <td></td>
+                                    <td>设定相对误差
+                                        <input type="text" v-model.number="limit.ist" size='3'> %
+                                    </td>
+                                    <td colspan="2"><button class="layui-btn layui-btn-radius layui-btn-xs"
+                                            @click="iterate('ist')"> <i class="layui-icon layui-icon-ok"></i>
+                                            开始自动迭代</button></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>起动转矩</td>
+                                    <td>`T_{st}=\frac{r_{2(st)}^{\ast}}{z_{(st)}^{\ast 2}}(1-s_{N})`</td>
+                                    <td>{{tst|numformat(3)}}</td>
+                                    <td> &nbsp;</td>
+                                </tr>
+                            </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <table class="layui-table hint" lay-skin="nob" >
+                    <colgroup>
+                        <col width="240">
+                        <col width="240">
+                        <col width="240">
+                    </colgroup>
+                   <!-- <colgroup>
+                        <col width="30">
+                        <col width="280">
+                        <col width="350">
+                        <col width="80">
+                        <col width="80">
+                    </colgroup>-->
+                    <tr>
+                        <td><button class="layui-btn layui-btn-radius" @click="iterate('all')"> 迭代全部参数 </button></td>
+                        <td><button class="layui-btn layui-btn-radius" @click="exportParameters"> 导出设计参数 </button></td>
+                        <td><button class="layui-btn layui-btn-radius" @click="exportReport"> 导出设计报告 </button></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    </div>
+</body>
+
+<script>
+    let vm = null;
+    let global_data = {"pfw":100,"flag":{"ft":0,"ftintv":78,"all":1,"allintv":109,"eta":0,"ist":0,"epsilonl":0,"epsilonlintv":101},"limit":{"epsilonl":0.5,"ist":1,"ft":0.5,"eta":0.5},"name":"Y2-160L-4","rzxs":2,"ydetail":"1-9,2-10,11-8","HH":160,"p2":15,"u1":380,"m1":3,"etappercent":89.7,"cosphip":0.85,"q1":36,"q2":28,"p":4,"d1":26,"di1":17,"di2":6,"delta":0.5,"y":7.67,"bsk":1.484,"z1":22,"a1":1,"j1p":5,"d":[1.12,1.18,0,0,0],"rr":2.2,"n":[1,2,0,0,0],"rs":4.9,"bs1":6.6,"b01":3.4,"b02":1,"alpha1":30,"alpha2":30,"h01":0.8,"hs0":0.8,"hs1andhs2":15,"br1":4.4,"hr0":0.5,"hr1andhr2":28.6,"kfe":0.95,"l":19.5,"nk":0,"bk":0,"epsilonlp":0.9374711218559573,"knm":1.11,"f":50,"ftp":1.191560500560298,"coild1":2,"ksp":1.16,"phi1":164,"phi2":109,"rho":0.0217,"gamma":8.9,"c":1.05,"cjyldelta":5,"kb":1.04,"rhob":0.0434,"rhor":0.0434,"ar":4,"psx":0.02,"k1":2.5,"k2":2,"istp":111.03946500816389,"bbdbr":1};
+    layui.use(['layer', 'form'], function () {
+        var layer = layui.layer;
+        var form = layui.form;
+    });
+    (function () {
+        var Sys = {};
+        var ua = navigator.userAgent.toLowerCase();
+        var s;
+        (s = ua.match(/msie ([\d.]+)/)) ? Sys.ie = s[1] :
+            (s = ua.match(/firefox\/([\d.]+)/)) ? Sys.firefox = s[1] :
+                (s = ua.match(/chrome\/([\d.]+)/)) ? Sys.chrome = s[1] :
+                    (s = ua.match(/opera.([\d.]+)/)) ? Sys.opera = s[1] :
+                        (s = ua.match(/version\/([\d.]+).*safari/)) ? Sys.safari = s[1] : 0;
+        //以下进行测试
+        if (Sys.ie) alert("IE浏览器不能正常运行此程序,请使用chrome浏览器或内置chrome内核的浏览器");
+        else if (!Sys.chrome) alert("请使用chrome浏览器或内置chrome内核的浏览器,在其他浏览器上运行此程序可能会出错");
+    })();
+</script>
+<script>
+    const PI = 3.1415926;
+    numformat2 = function (value, length) {
+        value = parseFloat(value);
+        if (Isinteger(value) || Isinteger(value * 10 ** length)) {
+            return value;
+        }
+        var temp = value * 10 ** length;
+        while (temp % 10 == 0) {
+            length--;
+        }
+        length = length < 0 ? 0 : length;
+        if (value != 0 && !value) {
+            return 0;
+        } else {
+            return !value.toFixed(length) ? 0 : value.toFixed(length);
+        }
+    };
+    function previewImg(config) {
+        if (!config.src || config.src == "") {
+            layer.msg("没有发现图片！");
+            return;
+        }
+        var default_config = { title: "图片预览" };
+        var img = new Image();
+        img.onload = function () {//避免图片还未加载完成无法获取到图片的大小。
+            //避免图片太大,导致弹出展示超出了网页显示访问,所以图片大于浏览器时下窗口可视区域时,进行等比例缩小。
+            var max_height = $(window).height() - 100;
+            var max_width = $(window).width() / 2;
+            //rate1,rate2,rate3 三个比例中取最小的。
+            var rate1 = max_height / img.height;
+            var rate2 = max_width / img.width;
+            var rate3 = 1;
+            var rate = Math.min(rate1, rate2, rate3);
+            //等比例缩放
+            default_config.height = img.height * rate; //获取图片高度
+            default_config.width = img.width * rate; //获取图片宽度
+
+            $.extend(default_config, config);
+            var imgHtml = "<img src='" + default_config.src + "' width='" + default_config.width + "px' height='" + default_config.height + "px'/>";
+            //弹出层
+            layer.open({
+                type: 1,
+                shade: 0,
+                moveOut: true,
+                offset: 'auto',
+                area: [default_config.width + 'px', default_config.height + 50 + 'px'], ////宽,高
+                title: default_config.title, //不显示标题  
+                content: imgHtml, //捕获的元素,注意：最好该指定的元素要存放在body最外层,否则可能被其它的相对元素所影响  
+                cancel: function () {
+                    //layer.msg('捕获就是从页面已经存在的元素上,包裹layer的结构', { time: 5000, icon: 6 });  
+                }
+            });
+        }
+        img.src = config.src;
+    }
+    sum = function sum(arr) {
+        if (!arr && !(arr instanceof Array)) {
+            return 0;
+        }
+        var sum = 0;
+        for (idx in arr) {
+            sum += parseInt(arr[idx]);
+        }
+        return sum;
+    };
+    Isinteger = function (obj) {
+        return Math.floor(obj) === obj
+    };
+    function checkRate(input) {
+　　var re = /^[0-9]+.?[0-9]*$/; //判断字符串是否为数字 //判断正整数 /^[1-9]+[0-9]*]*$/ 
+　　if (!re.test(input)) {
+　　　　return false;
+　　}
+    return true;
+}
+</script>
+<script>
+    function init() {
+        $('#beforeload').addClass("layui-hide");
+        vm = new Vue({
+            el: "#design",
+            data: global_data,
+            computed: {
+                etap: {
+                get:function () { return this.etappercent/100 },
+                set:function(value){this.etappercent=value*100; return value}
+                },
+                ku1: {
+                    get: function () { return curves.getByFormula("ku1", this.beta) },
+                    set: function (value) { return value }
+                },
+                kl1: {
+                    get: function () { return curves.getByFormula("kl1", this.beta) },
+                    set: function (value) { return value }
+                },
+                sigmas: {
+                    get: function () { return curves.get("sigmas", [this.sq1, this.beta]) },
+                    set: function (value) { return value }
+                },
+                pt1: {
+                    get: function () { return curves.get("pt", this.bt10) / 1e3 },
+                    set: function (value) { return value }
+                },
+                pj1: {
+                    get: function () { return curves.get("pt", this.bj10) / 1e3 },
+                    set: function (value) { return value }
+                },
+                jfxyxsx: {
+                    get: function () { return curves.get("jfxyxsx", [this.br1 / this.br2, this.xi]) },
+                    set: function (value) { return value }
+                },
+                jfxyxsr: {
+                    get: function () { return curves.get("jfxyxsr", [this.br1 / this.br2, this.xi]) },
+                    set: function (value) { return value }
+                },
+                sigmar: {
+                    get: function () { return curves.get("sigmar", this.q2 / this.p) },
+                    set: function (value) { return value }
+                },
+                lambdal: {
+                    get: function () { return curves.get("lambdal", [this.br1 / this.br2, this.hr2 / this.br2]) },
+                    set: function (value) { return value }
+                },
+                lambdal1: {
+                    get: function () { return curves.get("lambdal", [this.bs1 / this.bs2, this.hs2 / this.bs2]) },
+                    set: function (value) { return value }
+                },
+
+                c1: {
+                    get: function () { return curves.get("c1_" + (this.p >= 6 ? 6 : this.p), [this.bbj1, this.hj1p / this.taup]) },
+                    set: function (value) { return value }
+                },
+                c2: {
+                    get: function () { return curves.get("c2_" + (this.p >= 6 ? 6 : this.p), [this.bbj2, this.hj2p / this.taup]) },
+                    set: function (value) { return value }
+                },
+                ci: {
+                    get: function () { return curves.getByFormula("ci", this.HH) },
+                    set: function (value) { return value }
+                },
+                h: {
+                    get: function () { return curves.getByFormula("h", this.HH) },
+                    set: function (value) { return value }
+                },
+                att1: {
+                    get: function () { return curves.get("at", this.bbt1) },
+                    set: function (value) { return value }
+                },
+                att10: {
+                    get: function () { return curves.get("at", this.bt10) },
+                    set: function (value) { return value }
+                },
+                att2: {
+                    get: function () { return curves.get("at", this.bbt2) },
+                    set: function (value) { return value }
+                },
+                att20: {
+                    get: function () { return curves.get("at", this.bt20) },
+                    set: function (value) { return value }
+                },
+                atj1: {
+                    get: function () { return curves.get("at", this.bbj1) },
+                    set: function (value) { return value }
+                },
+                atj10: {
+                    get: function () { return curves.get("at", this.bj10) },
+                    set: function (value) { return value }
+                },
+                atj2: {
+                    get: function () { return curves.get("at", this.bbj2) },
+                    set: function (value) { return value }
+                },
+                atj20: {
+                    get: function () { return curves.get("at", this.bj20) },
+                    set: function (value) { return value }
+                },
+                c01: {
+                    get: function () { return curves.get("c1_" + (this.p >= 6 ? 6 : this.p), [this.bj10, this.hj1p / this.taup]) },
+                    set: function (value) { return value }
+                },
+                c02: {
+                    get: function () { return curves.get("c2_" + (this.p >= 6 ? 6 : this.p), [this.bj20, this.hj2p / this.taup]) },
+                    set: function (value) { return value }
+                },
+                kz: {
+                    get: function () { return curves.get("kz", this.bl) },
+                    set: function (value) { return value }
+                },
+                lambdal2: function () { return this.hr1 * 2 / (this.b02 + this.br1) + this.lambdal },
+                lambdau2: function () { return this.hr0 / this.b02 },
+                lambdau1: function () { return this.hs0 / this.b01 + 2 * this.hs1 / (this.b01 + this.bs1) },
+                rzxs_oneortwo: function () { return this.rzxs > 3 ? 2 : 1 },
+                tst: function () { return this.r2stx / this.zstx / this.zstx * (1 - this.sn) },
+                diffist: function () { return Math.abs(this.ist - this.istp) / this.ist * 100 },
+                istbeishu: function () { return this.ist / this.i1 },
+                ist: function () { return this.ikw / this.zstx },
+                zstx: function () { return Math.sqrt(this.rstx * this.rstx + this.xstx * this.xstx) },
+                rstx: function () { return this.r1x + this.r2stx },
+                r2stx: function () { return (this.jfxyxsr * this.l / this.lbz + (this.lbz - this.l) / this.lbz) * this.rbx + this.R_Rx },
+                xstx: function () { return this.x1stx + this.x2stx },
+                x2stx: function () { return this.xs2stx + this.xd2stx + this.xe2x + this.xskstx },
+                xskstx: function () { return this.kz * this.xskx },
+                xd2stx: function () { return this.kz * this.xd2x },
+                xs2stx: function () { return this.lambdas2st / this.lambdas2 * this.xs2x },
+                lambdas2st: function () { return this.lambdau2 - this.deltalambdau2 + this.jfxyxsx * this.lambdal2 },
+                deltalambdau2: function () { return this.hr0 / this.b02 * this.cs2 / (this.cs2 + this.b02 / 10) },
+                xi: function () { return 0.1987 * this.hb * Math.sqrt(this.bbdbr * this.f / this.rhob / 100) },
+                hb: function () { return (this.hr - this.hr0) / 10 },
+                x1stx: function () { return this.xs1stx + this.xd1stx + this.xe1x },
+                xd1stx: function () { return this.kz * this.xd1x },
+                xs1stx: function () { return this.lambdas1st / this.lambdas1 * this.xs1x },
+                lambdas1st: function () { return this.ku1 * (this.lambdau1 - this.deltalambdau1) + this.kl1 * this.lambdal1 },
+                deltalambdau1: function () { return (this.hs0 + 0.58 * this.hs1) / this.b01 * this.cs1 * 10 / (this.cs1 * 10 + 1.5 * this.b01) },
+                cs2: function () { return (this.t2 - this.b02 / 10) * (1 - this.kz) },
+                cs1: function () { return (this.t1 - this.b01 / 10) * (1 - this.kz) },
+                bl: function () { return this.atst / 1.6 / this.delta * 10 / this.betac / 1e4 },
+                betac: function () { return 0.64 + 2.5 * Math.sqrt(this.delta / 10 / (this.t1 + this.t2)) },
+                atst: function () { return this.istp * this.z1 / this.a1 * 0.707 * (this.ku1 + this.kd1 * this.kd1 * this.kp1 * this.q1 / this.q2) * Math.sqrt(this.epsilon0) },
+                istp2: function () { return 3.5 * this.tm * this.ikw },
+                istp1: function () { return 2.5 * this.tm * this.ikw },
+                tm: function () { return (1 - this.sn) / 2 / (this.r1x + Math.sqrt(this.r1x * this.r1x + this.xx * this.xx)) },
+                nn: function () { return this.f * 120 * (1 - this.sn) / this.p },
+                sn: function () { return this.pr2x / (1 + this.pr2x + this.pfex - this.PT1X - this.PJ1X + this.psx + this.pfwx) },
+                cosphi: function () { return 1 / this.i1x / this.eta },
+                diffeta: function () { return Math.abs(this.eta - this.etap) / this.eta * 100 },
+                eta: function () { return 1 - this.zshbpx },
+                zshbpx: function () { return this.px / this.p1x },
+                p1x: function () { return 1 + this.px },
+                px: function () { return this.pcu1x + this.pr2x + this.pfex + this.psx + this.pfwx },
+                pfex: function () { return this.pfe / this.p2 / 1e3 },
+                pfe: function () { return this.k1 * this.PT1 + this.k2 * this.PJ1 },
+                PT1X: function () { return this.PT1 / this.p2 / 1000 },
+                PJ1X: function () { return this.PJ1 / this.p2 / 1000 },
+                PT1: function () { return this.pt1 * this.vt1 },
+                PJ1: function () { return this.pj1 * this.vj1 },
+                vj1: function () { return this.p * 2 * this.aj1 * this.lj1p },
+                vt1: function () { return this.p * this.at1 * this.ht1p },
+                pfwx: function () { return this.pfw / this.p2 / 1e3 },
+                ps: function () { return this.psx * this.p2 * 1e3 },
+                pr2: function () { return this.pr2x * this.p2 * 1e3 },
+                pr2x: function () { return this.i2x * this.i2x * this.r2x },
+                pcu1: function () { return this.pcu1x * this.p2 * 1e3 },
+                pcu1x: function () { return this.i1x * this.i1x * this.r1x },
+                jr: function () { return this.ir / this.ar / 100 },
+                jb: function () { return this.i2 / this.ab / 100 },
+                ir: function () { return this.i2 * this.q2 / this.p / PI },
+                i2: function () { return this.i2x * this.ikw * this.m1 * this.zphi1kdp1 / this.q2 },
+                i2x: function () { return Math.sqrt(this.ipx * this.ipx + this.ixx * this.ixx) },
+                AS: function () { return this.m1 * this.zphi1 * this.i1 / this.di1 / PI },
+                j1: function () { return this.i1 / this.a1 / this.A },
+                i1: function () { return this.i1x * this.ikw },
+                i1x: function () { return Math.sqrt(this.ipx * this.ipx + this.irx * this.irx) },
+                im0: function () { return this.AT0 * this.p * 2.22 / this.m1 / this.zphi1kdp1 },
+                AT0: function () { return this.ATT10 + this.ATT20 + this.ATJ10 + this.ATJ20 + this.ATDELTA0 },
+                ATDELTA0: function () { return this.bdelta0 * this.deltae * 8e3 },
+                ATJ20: function () { return this.c2 * this.atj20 * this.lj2p },
+                ATJ10: function () { return this.c1 * this.atj10 * this.lj1p },
+                ATT20: function () { return this.att20 * this.ht2p },
+                ATT10: function () { return this.att10 * this.ht1p },
+                bdelta0: function () { return this.epsilon0 / this.epsilonl * this.bdelta },
+                bj20: function () { return this.epsilon0 / this.epsilonl * this.bbj2 },
+                bj10: function () { return this.epsilon0 / this.epsilonl * this.bbj1 },
+                bt20: function () { return this.epsilon0 / this.epsilonl * this.bbt2 },
+                bt10: function () { return this.epsilon0 / this.epsilonl * this.bbt1 },
+                epsilon0: function () { return 1 - this.imx * this.x1x },
+                diffepsilon: function () { return 100 * Math.abs(this.epsilonl - this.epsilonlp) / this.epsilonl },
+                epsilonl: function () { return 1 - this.ipx * this.r1x - this.irx * this.x1x },
+                irx: function () { return this.imx + this.ixx },
+                ixx: function () { return this.km * this.xx * this.ipx * this.ipx * (1 + Math.pow(this.km * this.xx * this.ipx, 2)) },
+                km: function () { return this.imx * this.x1x + 1 },
+                ipx: function () { return 1 / this.etap },
+                r2x: function () { return this.R_Rx + this.rbx },
+                R_Rx: function () { return this.R_R * this.ikw / this.u1 },
+                rbx: function () { return this.rb * this.ikw / this.u1 },
+                lb: {
+                    set: function (value) {
+                        return value;
+                    },
+                    get: function () {
+                        return this.l;
+                    }
+                },
+                fs: {
+                    get: function () { return curves.getByFormula("fs", this.ftp) },
+                    set: function (value) { return value }
+                },
+                R_R: function () { return this.k * this.dr / 10 * this.rhor * 2 / PI / this.p / this.p / this.ar },
+                rb: function () { return this.k * this.kb * this.lb * this.rhob / this.ab / this.q2 },
+                ab: function () { return ((this.b02 + this.br1) * this.hr1 / 2 + (this.br1 + this.br2) / 2 * this.hr2 + this.rr * this.rr * PI / 2) / 100 },
+                k: function () { return this.m1 * Math.pow(this.zphi1kdp1, 2) / 1e4 },
+                gfe: function () { return this.kfe * this.l * Math.pow(this.d1 + this.cjyldelta / 10, 2) * 7.8 / 1e3 },
+                g: function () { return this.c * this.lz * this.z1 * this.q1 * this.A * this.gamma / 1e5 },
+                r1x: function () { return this.r1 * this.ikw / this.u1 },
+                r1: function () { return this.rho * this.lz * this.zphi1 / 100 / this.A },
+                xx: function () { return this.x1x + this.x2x },
+                x2x: function () { return this.xs2x + this.xd2x + this.xe2x + this.xskx },
+                xskx: function () { return Math.pow(this.bsk / this.t2, 2) * 0.5 * this.xd2x },
+                dr: function () { return (this.phi1 + this.phi2) / 2 },
+                xe2x: function () { return 0.757 * this.cx / this.lef * ((this.lb - this.l) / 1.13 + this.dr / this.p / 10) },
+                xd2x: function () { return this.sigmar * this.m1 * this.taup * this.cx / this.deltae / this.ft / PI / PI },
+                xs2x: function () { return this.l2 * this.m1 * this.p * this.lambdas2 * this.cx / this.lef / this.q2 },
+                l2: function () { return this.l },
+                lambdas2: function () { return this.lambdau2 + this.lambdal2 },
+                x1x: function () { return this.xs1x + this.xe1x + this.xd1x },
+                xe1x: function () { return 0.47 * (this.ls - 0.64 * this.tauy) * this.cx / this.lef / this.kdp1 / this.kdp1 },
+                xd1x: function () { return this.m1 * this.taup / PI / PI / this.deltae * this.cx / this.kdp1 / this.kdp1 / this.ft * this.sigmas },
+                l1: function () { return this.l },
+                xs1x: function () { return this.l1 * this.m1 * this.p * this.lambdas1 * this.cx / this.lef / this.kdp1 / this.kdp1 / this.q1 },
+                lambdas1: function () { return this.ku1 * this.lambdau1 + this.kl1 * this.lambdal1 },
+                cx: function () { return 2.63 * this.f * this.p2 * this.lef * this.zphi1kdp1 * this.zphi1kdp1 / this.p / this.u1 / this.u1 / 1e5 },
+                ls: function () { return 2 * this.coild1 + this.ks * this.tauy },
+                lz: function () { return this.lbz + this.ks * this.tauy },
+                fd: function () { return this.cs * this.sinalpha },
+                cs: function () { return this.tauy / 2 / Math.sqrt(1 - this.sinalpha * this.sinalpha) },
+                sinalpha: function () { return (this.bs1 + 2 * this.rs) / (this.bs1 + 2 * this.rs + 2 * this.bt1) },
+                tauy: function () { return PI * (this.di1 * 10 + 2 * (this.hs0 + this.hs1) + this.hs2 + this.rs) * this.beta / this.p / 10 },
+                beta: function () { return this.y / this.qp1 },
+                ks: {
+                    set: function (value) {
+                        this.ksp = value;
+                        return value;
+                    },
+                    get: function () {
+                        if (!this.ksp) {
+                            return this.p == 2 ? 1.16 : (this.p == 4 || this.p == 6 ? 1.2 : 1.25)
+                        }
+                        return this.ksp;
+                    }
+                },
+                lbz: function () { return this.l + this.coild1 * 2 },
+                xmx: function () { return 1 / this.imx },
+                imx: function () { return this.im / this.ikw },
+                im: function () { return 2.22 * this.AT * this.p / this.m1 / this.zphi1kdp1 },
+                AT: function () { return this.ATT1 + this.ATT2 + this.ATJ1 + this.ATJ2 + this.ATDELTA },
+                ft: function () { return (this.ATT1 + this.ATT2 + this.ATDELTA) / this.ATDELTA },
+                ATDELTA: function () { return 0.8 * this.bdelta * this.deltae * 1e4 },
+                ATJ1: function () { return this.c1 * this.atj1 * this.lj1p },
+                ATJ2: function () { return this.c2 * this.atj2 * this.lj2p },
+                ATT2: function () { return this.att2 * this.ht2p },
+                ATT1: function () { return this.att1 * this.ht1p },
+                deltae: function () { return this.delta / 10 * this.kc1 * this.kc2 },
+                kc1: function () {
+                    let temp = this.t1 * 10 * (4.4 * this.delta + 0.75 * this.b01);
+                    return temp / (temp - this.b01 * this.b01)
+                },
+                kc2: function () {
+                    let temp = this.t2 * 10 * (4.4 * this.delta + 0.75 * this.b02);
+                    return temp / (temp - this.b02 * this.b02)
+                },
+                lj1p: function () { return PI / 2 / this.p * (this.d1 - this.hj1p) },
+                lj2p: function () { return PI / 2 / this.p * (this.di2 + this.hj2p) },
+                ht1p: function () { return (this.hs1andhs2 + this.rs / 3) / 10 },
+                ht2p: function () { return (this.hr1andhr2 + this.rr / 3) / 10 },
+                br2: {
+                    get: function () { return this.rr * 2 },
+                    set: function (value) { this.rr = value / 2; return value }
+                },
+                bs2: {
+                    get: function () { return this.rs * 2 },
+                    set: function (value) { this.rs = value / 2; return value }
+                },
+                bdelta: function () { return this.fs * this.phi / this.adelta * 1e4 },
+                bbj2: function () { return this.phi / this.aj2 / 2 * 1e4 },
+                bbj1: function () { return this.phi / this.aj1 / 2 * 1e4 },
+                bbt2: function () { return this.fs * this.phi / this.at2 * 1e4 },
+                bbt1: function () { return this.fs * this.phi / this.at1 * 1e4 },
+                adelta: function () { return this.taup * this.lef },
+                lef: function () { return this.l + 2 * this.delta / 10 },
+                hj2p: function () { let result = (this.d2 - this.di2) / 2 - this.hr / 10 - 2 / 3 * this.nk * this.bk; if (true || 'yuandi') { return result + this.rr / 30; } else return result },
+                aj2: function () { return this.hj2p * this.lfe },
+                hs: function () { return this.rs + this.hs0 + this.hs1 + this.hs2 },
+                hr: function () { return this.rr + this.hr0 + this.hr1 + this.hr2 },
+                aj1: function () { return this.hj1p * this.lfe },
+                hj1p: function () { let result = (this.d1 - this.di1) / 2 - this.hs / 10; if (true || 'yuandi') { return result + this.rs / 30; } else return result },
+                at2: function () { return this.bt2 * this.lfe * this.qp2 },
+                bt2: function () {
+                    var result1 = PI * (this.d2 * 10 - (this.hr0 + this.hr1 + this.hr2 / 3 * 2) * 2) / this.q2 - (this.br1 + (this.br2 - this.br1) / 3 * 2);
+                    var result2 = PI * (this.d2 * 10 - (this.hr0 + this.hr1 + this.hr2 / 3) * 2) / this.q2 - (this.br1 + (this.br2 - this.br1) / 3);
+                    return (result1 > result2 ? result2 / 10 : result1 / 10)
+                },
+                bt1: function () {
+                    var result1 = PI * (this.di1 * 10 + (this.hs0 + this.hs1 + this.hs2 / 3 * 2) * 2) / this.q1 - (this.bs1 + (this.bs2 - this.bs1) / 3 * 2);
+                    var result2 = PI * (this.di1 * 10 + (this.hs0 + this.hs1 + this.hs2 / 3) * 2) / this.q1 - (this.bs1 + (this.bs2 - this.bs1) / 3);
+                    return (result1 > result2 ? result2 / 10 : result1 / 10)
+                },
+                hr1: function () { return (this.br1 - this.b02) / 2 * Math.tan(this.alpha2 / 180 * PI) },
+                hr2: function () { return this.hr1andhr2 - this.hr1 },
+                hs2: {
+                    get: function () { return this.hs1andhs2 - this.hs1 },
+                    set: function (newvalue) { this.hs1andhs2 = this.hs2 + this.hs1 },
+                },
+                hs1: function () { return (this.bs1 - this.b01) / 2 * Math.tan(this.alpha1 / 180 * PI) },
+                at1: function () { return this.bt1 * this.lfe * this.qp1 },
+                phi: function () { return this.u1 * this.epsilonlp / 2 / this.knm / this.f / this.zphi1kdp1 },
+                zphi1kdp1: function () { return this.zphi1 * this.kdp1 },
+                kdp1: function () { return this.kd1 * this.kp1 },
+                alpha: function () { return this.p * PI / this.q1 },
+                sq1: function () { return this.q1 / this.m1 / this.p },
+                kd1: function () { return Math.sin(this.alpha * this.sq1 / 2) / this.sq1 / Math.sin(this.alpha / 2) },
+                kp1: function () {
+                    if (this.rzxs_oneortwo == 1) { return 1; }
+                    else return Math.sin(this.y * this.p / this.q1 * PI / 2);
+                },
+                lfe: function () { return this.kfe * (this.l - this.nk * this.bk) },
+                sf: function () { var result = 0; for (var i = 0; i < this.d.length; i++) { let dp = this.d[i] >= 1 ? this.d[i] + 0.08 : this.d[i] + 0.06; if (!!(this.n[i] + this.d[i])) result += this.n[i] * dp * dp * this.z1 / this.ae / 100 } return result },
+                ae: function () { return this.as - this.ai },
+                ai: function () {
+                    let result = 0;
+                    result = 2 * this.hs1andhs2 + PI * this.rs;
+                    if (this.rzxs_oneortwo == 2) {
+                        result += this.rs * 2 + this.bs1;
+                    }
+                    return this.ci * result / 100;
+                },
+                as: function () { return ((this.rs * 2 + this.bs1) / 2 * (this.hs1andhs2 - this.h) + this.rs * this.rs * PI / 2) / 100 },
+                ikw: function () { return this.p2 * 1e3 / this.m1 / this.u1 },
+                qp1: function () { return this.q1 / this.p },
+                qp2: function () { return this.q2 / this.p },
+                d2: function () { return this.di1 - 2 * this.delta / 10 },
+                taup: function () { return this.di1 * PI / this.p },
+                t1: function () { return this.di1 * PI / this.q1 },
+                t2: function () { return this.d2 * PI / this.q2 },
+                diffft: function () { return Math.abs(this.ft - this.ftp) / this.ft * 100 },
+                zphi1: function () { return this.q1 * this.z1 / this.m1 / this.a1 },
+                i1p: function () { return this.ikw / this.etap / this.cosphip },
+                n1pa1p: function () { return this.i1p / this.a1 / this.j1p },
+                A: function () { var result = 0; for (var i = 0; i < this.d.length; i++) { if (!!(this.n[i] + this.d[i])) result += this.n[i] * this.d[i] * this.d[i] * PI / 4 } return result; }
+            },
+            methods: {
+                iterate: function (value) {
+                    let iterator = function (value) {
+                        console.log(value + ':' + vm[value + 'p']);
+                        if (Math.abs(vm[value + 'p'] - vm[value]) / vm[value] < vm.limit[value] / 100) {
+                            vm.flag[value] = 0;
+                            window.clearInterval(vm.flag[value + 'intv']);
+                            return 1;
+                        } else {
+                            vm[value + 'p'] = vm[value] * (1 + math.random(0 - vm.limit[value] / 50, 0 + vm.limit[value] / 50));
+                            return 0;
+                        }
+                    }
+                    if (value === 'all') {
+                        let names = ['ft', 'eta', 'ist', 'epsilonl'];
+                        this.flag[value] = 1;
+                        let idx = 0;
+                        this.flag['allintv'] = setInterval(function () {
+                            idx = idx + iterator(names[idx % 4]);
+                            let allclear = 0;
+                            names.forEach((ele) => {
+                                allclear = allclear + ((Math.abs(vm[ele + 'p'] - vm[ele]) / vm[ele] < vm.limit[ele] / 100) ? 1 : 0);
+                            });
+                            if (allclear >= 4) {
+                                alert('全部迭代完成!');
+                                window.clearInterval(vm.flag['allintv']);
+                            }
+                        }, 300);
+                    } else {
+                        if (!this.flag[value]) {
+                            this.flag[value] = 1;
+                            this.flag[value + 'intv'] = setInterval(function () {
+                                iterator(value);
+                            }, 220);
+                        } else {
+                            this.flag[value] = 0;
+                            window.clearInterval(this.flag[value + 'intv']);
+                        }
+                    }
+
+                },
+                opendzdblkbyz: function () {
+                    this.layeropen('定子端部漏抗', '文献1系数为0.47（P97-51式）,而文献2系数为0.67（P35-51式）,在此采用文献1的系数');
+                },
+                exportReport: function () {
+                    $('body').find('div,h1,table').removeClass();
+                    $('body').find('button,i').remove();
+                    $('#beforeload').hide();
+                    $("#attention").hide();
+                    $('body').find('input').each((idx,ele)=>{
+                        let str=ele.value;
+                        if(checkRate(str)){
+                            str = numformat2(parseFloat(str),3);
+                        }
+                        let ele2=document.createElement('span');
+                        ele2.innerHTML=str;
+                        MathJax.Hub.Typeset(ele2);
+                        $(ele).replaceWith(ele2);
+                    });
+                    let temp=$('select')[0];
+                    var arr=['单层链式','单层交叉','单层同心'];
+                    let ele2=document.createElement('span');
+                    ele2.innerHTML=arr[parseInt(temp.value)-1];
+                    $(temp).replaceWith(ele2);
+                    let divs=$('#attention').siblings();
+                    $('body')[0].innerHTML='';
+                    $('body').append(divs);
+                    window.print();
+                    this.exportParameters();
+                },
+                exportParameters: function () {
+                    this.layeropen('导出设计参数', '请将以下数据复制保存,下次打开网页的时候输入即可<br>' +
+                        '<textarea cols="80" rows="15">' + JSON.stringify(this._data) + '</textarea>');
+                },
+                openebclcdjzxs: function () {
+                    var imgsrc = 'img/图2B-' + (3 + (this.p < 6 ? this.p / 2 : 3)) + '.png';
+                    previewImg({
+                        src: imgsrc,
+                        title: '轭部磁路长度校正系数'
+                    });
+                },
+                opendeltalambdau2: function () {
+                    previewImg({
+                        src: 'img/图2A-6.png',
+                        title: '转子集肤效应系数'
+                    });
+                },
+                openzzjfxyxs: function () {
+                    previewImg({
+                        src: 'img/图2B-19.png',
+                        title: '转子集肤效应系数'
+                    });
+                    this.layeropen('转子集肤效应系数', 'xi=' + numformat2(this.xi, 3) + ',b1/b2=' + numformat2(this.br1 / this.br2, 2));
+                },
+                layeropen: function (title, content) {
+                    layer.open({
+                        type: 1
+                        , title: title
+                        , area: 'auto'
+                        , shade: 0, maxWidth: 750, maxHeight: 600
+                        , offset: 't'
+                        , maxmin: true
+                        , content: content
+                        , zIndex: layer.zIndex
+                    })
+                },
+                opendeltalambdau1: function () {
+                    previewImg({
+                        src: 'img/图2A-1.png',
+                        title: '漏抗变化系数'
+                    });
+                },
+                openkz: function () {
+                    previewImg({
+                        src: 'img/表2B-17.png',
+                        title: '漏抗变化系数'
+                    });
+                },
+                openth: function () {
+                    this.layeropen('铁耗校正系数', '半闭口槽k1=2.5,k2=2;开口槽k1=3.0,k2=2.5,或选其他经验值');
+                },
+                opendwsh: function () {
+                    previewImg({
+                        src: 'img/表F-20.png',
+                    });
+                    this.layeropen('单位损耗', '根据BT10=' + numformat2(this.bt10, 2) + 'Bj10=' + numformat2(this.bj10, 2) + ',查表F-19,F-20,F-21')
+                },
+                openrzxs: function () {
+                    this.layeropen('绕组型式', '对于H160及以下采用单层绕组,H180及以上选用双层绕组(本程序只支持单层绕组)');
+                },
+                openjxsh: function () {
+                    previewImg({
+                        src: 'img/表2-15.png',
+                    });
+                    previewImg({
+                        src: 'img/机械损耗公式.png',
+                    });
+                    this.layeropen('机械损耗实际值', '根据中心高H=' + numformat2(this.HH, 2) + 'mm,极数p=' + this.p + '选取,也可根据公式计算');
+                },
+                openpsx: function () {
+                    this.layeropen('附加损耗标幺值', '对铸铝转子,P=0.01~0.03（极数少者取较大值）;对铜条转子,P=0.005');
+                },
+                opendzxs2: function () {
+                    previewImg({
+                        src: 'img/表2-2.png',
+                    });
+                },
+                opendtxs: function () {
+                    this.layeropen('系数', '铸铝转子时KB=1.04,铜条转子时KB=1');
+                },
+                opengamma: function () {
+                    this.layeropen('导线密度', '铝导线取2.7,铜导线取8.9');
+                },
+                openyxzlxs: function () {
+                    this.layeropen('质量系数', '考虑导线绝缘和引线质量的系数,对漆包圆铝线取1.1,漆包圆铜线取1.05');
+                },
+                openrho: function () {
+                    this.layeropen('导线电阻率', '对A、E、B级绝缘（75℃）铝为0.0346,铜为0.0217;对F、H级绝缘（115℃）铝为0.0392,铜为0.0245');
+                },
+                opensigmaR: function () {
+                    previewImg({
+                        src: 'img/图2B-16.png',
+                    });
+                    this.layeropen('SigmaR', 'Q2/2p=' + numformat2(this.q2 / this.p, 2));
+                },
+                opensigmas: function () {
+                    previewImg({
+                        src: 'img/图2B-13.png',
+                    });
+                    previewImg({
+                        src: 'img/图2B-14.png',
+                    });
+                    this.layeropen('Sigma_s', 'beta=' + numformat2(this.beta, 3) + ',q=' + numformat2(this.sq1, 3));
+                },
+                openzzlcd: function () {
+                    previewImg({
+                        src: 'img/图2A-6.png',
+                    });
+                    previewImg({
+                        src: 'img/图2B-8.png',
+                    });
+                    this.layeropen('转子槽单位漏磁导', 'h/b2=' + numformat2(this.hr2 / this.br2, 3) + ',b1/b2=' +
+                        numformat2(this.br1 / this.br2, 3));
+                },
+                openlcd: function () {
+                    previewImg({
+                        src: 'img/图2A-1.png',
+                    });
+                    previewImg({
+                        src: 'img/图2B-8.png',
+                    });
+                    this.layeropen('定子槽单位漏磁导', 'h/b2=' + numformat2(this.hs2 / this.bs2, 3) + ',b1/b2=' +
+                        numformat2(this.bs1 / this.bs2, 3));
+                },
+                openjjlkxs: function () {
+                    previewImg({
+                        src: 'img/图2B-12.png',
+                        title: '节距漏抗系数'
+                    });
+                    this.layeropen('节距漏抗系数', '根据文献2,单层绕组KU1=1,KL1=1,但文献1并无此说明');
+                },
+                openks: function () {
+                    this.layeropen('经验值选取', '2极取1.16,4、6极取1.2,8极取1.25,或选取其他经验值');
+                },
+                openzxbfcd: function () {
+                    this.layeropen('直线部分长度', '取1~3cm,基座大、极数少者取较大值');
+                },
+                openccc: function () {
+                    previewImg({
+                        src: 'img/槽型尺寸.png',
+                        title: '槽尺寸'
+                    })
+                },
+                openazs: function () {
+                    previewImg({ title: '每厘米安匝数', src: 'img/表F-10.png' })
+                },
+                openbfxs: function () {
+                    previewImg({ title: '波幅系数', src: 'img/表2B-3.png' })
+                },
+                opencml: function () {
+                    this.layeropen('槽绝缘有关尺寸', '一般直径小于1.00mm的导线绝缘厚取0.06mm,大于等于1.00mm的导线绝缘厚取0.08mm');
+                },
+                opencjy: function () {
+                    previewImg({ title: '槽绝缘有关尺寸', src: 'img/表2-7.png' });
+                },
+                wireedit: function (flag) {
+                    let length = 0;
+                    var insertinput = function (arr, i, id) {
+                        var input = document.createElement('input');
+                        input.type = 'text';
+                        input.size = '3';
+                        input.setAttribute('v-model.number', arr + '[' + i + ']');
+                        document.getElementById(id).appendChild(input);
+                    };
+                    var deleteinput = function (id) {
+                        let ele = document.getElementById(id);
+                        ele.removeChild(ele.lastChild);
+                    };
+                    var str = '`d_1';
+                    var str3 = "`N_1";
+                    if (flag > 0) {
+                        insertinput('d', length, 'd1input');
+                        insertinput('n', length, 'n1input');
+                        length = document.getElementById('d1input').children.length;
+                        this.d.push(0);
+                        this.n.push(0);
+                        this.$set(this.d, length, 0);
+                        this.$set(this.n, length, 0);
+                    } else {
+                        deleteinput('d1input');
+                        deleteinput('n1input');
+                        length = document.getElementById('d1input').children.length;
+                        this.d.pop();
+                        this.n.pop();
+                        this.$set(this.d, length - 1, undefined);
+                        this.$set(this.n, length - 1, undefined);
+                    }
+                    for (var i = 1; i < length; i++) {
+                        str += ',' + 'd_' + (i + 1);
+                        str3 += "," + 'N_' + (i + 1);
+                    }
+                    str += '`';
+                    str3 += '`';
+                    $("#d1")[0].innerHTML = str;
+                    $("#n1")[0].innerHTML = str3;
+                    MathJax.Hub.Typeset(document.getElementById('d1'));
+                    MathJax.Hub.Typeset(document.getElementById('n1'));
+                },
+                addwire: function () {
+                    this.wireedit(1);
+                },
+                deletewire: function () {
+                    this.wireedit(-1);
+                },
+                d1inputkeyup: function () {
+                    $("#d1input input").each((idx, ele) => {
+                        this.$set(this.d, idx, parseFloat(ele.value));
+                    });
+                    $("#n1input input").each((idx, ele) => {
+                        this.$set(this.n, idx, parseFloat(ele.value));
+                    });
+                }
+            },
+            watch: {
+
+            },
+            filters: {
+                numformat: function (value, length) {
+                    return numformat2(value, length)
+                },
+                intformat: function (value) {
+                    return !Math.round(value) ? 0 : Math.round(value);
+                }
+            }
+        });
+        $('#design').removeClass('layui-hide');
+        layui.use('element', function () {
+            var element = layui.element;
+        });
+        MathJax.Hub.Typeset(document.getElementById('design'));
+    }
+</script>
+
+</html>

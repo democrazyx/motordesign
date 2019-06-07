@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <script src="http://cdn.staticfile.org/vue/2.2.2/vue.min.js"></script>
+    <script src="http://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
+    <script type="text/x-mathjax-config">
+        MathJax.Hub.Config({
+            showProcessingMessages: false,
+            elements: [''],
+            messageStyle: "none",
+            extensions: ["tex2jax.js"],
+            jax: ["input/TeX", "output/HTML-CSS"],
+            tex2jax: {
+                inlineMath:  [ ["$", "$"] ],
+                displayMath: [ ["$$","$$"] ],
+                skipTags: ['script', 'noscript', 'style', 'textarea', 'pre','code','a'],
+                ignoreClass:"comment-content"
+            },
+            "HTML-CSS": {
+                availableFonts: ["STIX","TeX"],
+                showMathMenu: false
+            }
+        });
+    </script>
+    <script type="text/javascript"
+        src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=AM_HTMLorMML-full"></script>
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="css/uikit.min.css">
+    <!-- 引入组件库 -->
+    <script src="js/uikit.min.js"></script>
+    <style>
+        .list-none {
+            list-style-type: none
+        }
+
+        .list-squre {
+            list-style-type: square
+        }
+
+        div.export {
+            margin: auto;
+            width: 1680px;
+            height: 2376px;
+            font-size: 25px;
+            font-family: NSimSun;
+            font-weight: 300
+        }
+
+        table.coil {
+            border: 1px solid;
+            text-align: center;
+            border-collapse: collapse
+        }
+
+        table.coil td,
+        th {
+            padding: 5px;
+            border: 1px solid;
+            text-align: center;
+        }
+
+        .ant-layout,
+        .ant-layout-header {
+            background-color: white;
+            color: #000;
+        }
+
+        .MathJax {
+            outline: 0;
+        }
+        .MathJax span {
+            font-size: 20px;
+        }
+        body {
+            font-size: 20px
+        }
+
+        .bg-purple {
+            background: #d3dce6;
+        }
+
+        .grid-content {
+            border-radius: 4px;
+            min-height: 36px;
+        }
+    </style>
+    <style>
+
+    </style>
+</head>
+
+<body>
+    <div id="design">
+            <div class="uk-grid">
+                    <div class="uk-width-1-10">变量</div>
+                    <div class="uk-width-9-10">
+                        计算功率：`P_r`&emsp;气隙磁场波形系数（正弦分布时为1.11）：`K_{Nm}`&emsp;绕组系数（单层0.96，双层0.92）：`K_w`&emsp;
+                        每相串联导体数：`W`&emsp;计算极弧系数：`\alpha_{i}=\frac{B_{\delta w}}{B_{\delta}}=0.63 ~ 0.72`&emsp;极距`\tau=\frac{\pi D}{2 p}`&emsp;
+                        满载电动势系数：`K_E`
+                    </div>
+                </div>
+                <div class="uk-grid">
+                        
+                        <div class="uk-width-1-2">
+                                <table class="uk-table uk-table-condensed">
+                                        <caption><h2>一、额定数据及主要尺寸</h2></caption>
+                                        <thead>
+                                            <tr>
+                                                <th>名称</th>
+                                                <th>符号及公式</th>
+                                                <th>结果</th>
+                                                <th>单位</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>定子相数</td>
+                                                <td>`m_1`</td>
+                                                <td>3</td>
+                                                <td></td>
+                                            </tr>
+                                            <tr>
+                                                <td>定子相数</td>
+                                                <td>`m_1`</td>
+                                                <td>3</td>
+                                                <td></td>
+                                            </tr>
+                                            <tr>
+                                                <td>定子连接（Y/D）</td>
+                                                <td></td>
+                                                <td><input type="text" v-model="yord" size='5'></td>
+                                                <td></td>
+                                            </tr>
+                                            <tr>
+                                                <td>额定电压</td>
+                                                <td>`U_N`</td>
+                                                <td><input type="text" v-model.number="un" size='5'></td>
+                                                <td>V</td>
+                                            </tr>
+                                            <tr>
+                                                <td>额定频率</td>
+                                                <td>`f_N`</td>
+                                                <td><input type="text" v-model.number="fn" size='5'></td>
+                                                <td>Hz</td>
+                                            </tr>
+                                            <tr>
+                                                <td>定子冲片外径</td>
+                                                <td>`D_1`</td>
+                                                <td><input type="text" v-model="d1" size='5'></td>
+                                                <td>mm</td>
+                                            </tr>
+                                            <tr>
+                                                <td>定子冲片内径</td>
+                                                <td>`D_{i1}`</td>
+                                                <td><input type="text" v-model="di1" size='5'></td>
+                                                <td>mm</td>
+                                            </tr>
+                                            <tr>
+                                                <td>气隙长度</td>
+                                                <td>`\delta`</td>
+                                                <td><input type="text" v-model="delta" size='5'></td>
+                                                <td>mm</td>
+                                            </tr>
+                                            <tr>
+                                                <td>转子冲片外径</td>
+                                                <td>`D_2=D_{i1}-\delta`</td>
+                                                <td>{{d2}}</td>
+                                                <td>mm</td>
+                                            </tr>
+                                            <tr>
+                                                <td>转子冲片内径</td>
+                                                <td>`D_{i2}`</td>
+                                                <td><input type="text" v-model="di2" size='5'></td>
+                                                <td>mm</td>
+                                            </tr>
+                                            <tr>
+                                                <td>额定功率</td>
+                                                <td>`P_N`</td>
+                                                <td><input type="text" v-model.number="pn" size='5'></td>
+                                                <td>kW</td>
+                                            </tr>
+
+                                            <tr>
+                                                <td>定子相电压</td>
+                                                <td>`U_1`</td>
+                                                <td>{{u1|numformat(2)}}</td>
+                                                <td>V</td>
+                                            </tr>
+                                            <tr>   
+                                                <td>功电流</td>
+                                                <td>`I_{K W}=\frac{P_{N} \cdot 10^{3}}{m_{1} \cdot U_{1}}`</td>
+                                                <td>{{ikw|numformat(3)}}</td>
+                                                <td>A</td>
+                                            </tr>
+                                            <tr>
+                                                <td>额定效率</td>
+                                                <td>`\eta_N`</td>
+                                                <td><input type="text" v-model.number="etan" size='5'></td>
+                                                <td></td>
+                                            </tr>
+                                            <tr>
+                                                <td>额定功率因数</td>
+                                                <td>`cos\phi_N`</td>
+                                                <td><input type="text" v-model.number="cosphin" size='5'></td>
+                                                <td></td>
+                                            </tr>
+                                            <tr>
+                                                <td>极数</td>
+                                                <td>`p`</td>
+                                                <td><input type="text" v-model.number="p" size='5'></td>
+                                                <td></td>
+                                            </tr>
+                                            <tr>
+                                                <td>定子槽数</td>
+                                                <td>`Z_1`</td>
+                                                <td><input type="text" v-model.number="z1" size='5'></td>
+                                                <td></td>
+                                            </tr>
+                                            <tr>
+                                                <td>转子槽数</td>
+                                                <td>`Z_2`</td>
+                                                <td><input type="text" v-model.number="z2" size='5'></td>
+                                                <td></td>
+                                            </tr>
+                                               <tr>
+                                                <td>定子每极槽数</td>
+                                                <td>`Z_{P 1}=\frac{Z_{1}}{p}`</td>
+                                                <td>{{zp1}}</td>
+                                                <td></td>
+                                            </tr>
+                                            <tr>
+                                                <td>转子每极槽数</td>
+                                                <td>`Z_{P 2}=\frac{Z_{2}}{p}`</td>
+                                                <td>{{zp2}}</td>
+                                                <td></td>
+                                            </tr>
+                                            <tr>
+                                                <td>极距</td>
+                                                <td>`\tau_{p}= \frac{\pi \cdot D_{i 1} }{p}`</td>
+                                                <td>{{taup|numformat(3)}}</td>
+                                                <td>mm</td>
+                                            </tr>
+                                            <tr>
+                                                <td>定子齿距</td>
+                                                <td>`t_{1}=\frac{\pi \cdot D_{i 1}}{Z_{1}}`</td>
+                                                <td>{{t1|numformat(3)}}</td>
+                                                <td>mm</td>
+                                            </tr>
+                                            <tr>
+                                                <td>转子齿距</td>
+                                                <td>`t_{2}=\frac{\pi \cdot D_{i 2}}{Z_{2}}`</td>
+                                                <td>{{t2|numformat(3)}}</td>
+                                                <td>mm</td>
+                                            </tr>
+                                            <tr>
+                                                <td colspan="2">绕组型式</td>
+                                                <td colspan="2"><select v-model="coiltype">
+                                                    <option value="dctx">单层同心</option>
+                                                    <option value="dcjc">单层交叉</option>
+                                                    <option value="dcls">单层链式</option>
+                                                    <option value="scds">双层叠式</option>
+                                                </select></td>
+                                            </tr>
+                                            <tr>
+                                                <td>节距</td>
+                                                <td>`y`</td>
+                                                <td></td>
+                                                <td></td>
+                                            </tr>
+                                            <tr>
+                                                <td>转子斜槽距</td>
+                                                <td>`b_{SK}`</td>
+                                                <td><input type="text" v-model.number="bsk" size='5'></td>
+                                                <td>mm</td>
+                                            </tr>
+                                            <tr>
+                                                <td>定子每槽导体数</td>
+                                                <td>`S_{n1}`</td>
+                                                <td><input type="text" v-model.number="sn1" size='5'></td>
+                                                <td></td>
+                                            </tr>
+                                            <tr>
+                                                <td>并联支路数</td>
+                                                <td>`a1`</td>
+                                                <td><input type="text" v-model.number="a1" size='5'></td>
+                                                <td></td>
+                                            </tr>
+                                            <tr>
+                                                <td>每相串联导体数</td>
+                                                <td>`N_{\phi 1}=\frac{ Z_1S_{n1} }{m_1 a_1}`</td>
+                                                <td>{{nphi1}}</td>
+                                                <td></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                        </div>
+                    <div class="uk-width-1-1">
+                        <h2>2.电磁负荷的选择</h2><br>
+                        电负荷`A_S`：<input type="text" v-model.number="as" size='5'>A/cm&emsp;磁负荷`B_\delta`：<input type="text" v-model.number="bdelta" size='5'>T&emsp;
+                    <br>
+                    </div>
+                </div>
+    </div>
+    
+</body>
+
+<script>
+    sum = function sum(arr) {
+        if (!arr && !(arr instanceof Array)) {
+            return 0;
+        }
+        var sum = 0;
+        for (idx in arr) {
+            sum += parseInt(arr[idx]);
+        }
+        return sum;
+    };
+    Isinteger = function (obj) {
+        return Math.floor(obj) === obj
+    };
+    var vm = new Vue({
+        el: "#design",
+        data: {
+            coiltype:null,
+            bsk:11.87,//转子斜槽局
+            sn1:35,
+            a1:1,
+            s3:Math.sqrt(3),
+            pn:7.5, //额定功率kw
+            un:380, //额定电压V
+            fn:50,  //额定频率Hz
+            yord:'Y',   //连接方式
+            cosphin:0.85,   //额定功率因数
+            etan:0.87,  //额定效率
+            as:null,    //电负荷
+            bdelta:null,    //磁负荷
+            p:2,    //极对数
+            z1:36,  //定子槽数
+            z2:32,     //转子槽数
+            m1:3,   //定子相数
+            di1:136,    //定子冲片内径
+            di2:48, //转子冲片内径
+            d1:210, //定子冲片外径
+            delta:0.8   //气隙长度
+        },
+        //(tr>td*4)*5
+        computed: {
+            t1:function(){return 3.14159*this.di1/this.z1},
+            t2:function(){return 3.14159*this.d2/this.z2},
+            taup:function(){return 3.14159*this.di1/this.p},    //极距
+            d2:function(){return this.di1-this.delta},//转子冲片外径
+            zp1:function(){return this.z1/this.p},  //每极槽数
+            zp2:function(){return this.z2/this.p},
+            u1:function(){      //定子相电压
+                if(!!this.yord){
+                    if(this.yord.trim().toUpperCase()=='Y'){
+                        return this.un/Math.sqrt(3);
+                    }else if(this.yord.trim().toUpperCase()=='D'){
+                        return this.un;
+                    }
+                }
+            },
+            ikw:function(){ //功电流
+                return this.pn*1000/this.m1/this.u1;
+            },
+            nphi1:function(){return this.z1*this.sn1/this.m1/this.a1}
+        },
+        methods: {
+            insert(id,html){
+                document.getElementById(''+id).innerHTML=html;
+                MathJax.Hub.Typeset(document.getElementById(''+id));
+            }
+        },
+        watch: {
+
+        },
+        filters: {
+            numformat: function (value, length) {
+                value = parseFloat(value);
+                if (Isinteger(value) || Isinteger(value * 10 ** length)) {
+                    return value;
+                }
+                var temp = value * 10 ** length;
+                while (temp % 10 == 0) {
+                    length--;
+                }
+                length = length < 0 ? 0 : length;
+                if (value != 0 && !value) {
+                    return 0;
+                } else {
+                    return !value.toFixed(length) ? 0 : value.toFixed(length);
+                }
+            },
+            intformat: function (value) {
+                return !Math.round(value) ? 0 : Math.round(value);
+            }
+        }
+    });
+</script>
+
+<script>
+    var mj = window.setInterval(function () {
+        if (!!MathJax.Hub.Typeset) {
+            window.setTimeout(()=>{
+                MathJax.Hub.Typeset(document.getElementById('design'));
+            },500);
+            window.clearInterval(mj);
+        }
+    }, 100); 
+</script>
+
+</html>

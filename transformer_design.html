@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="utf-8">
+	<script src="http://cdn.staticfile.org/vue/2.2.2/vue.min.js"></script>
+	<script src="http://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
+	<style>
+		.list-none {
+			list-style-type: none
+		}
+		.list-squre {
+			list-style-type: square
+		}
+	</style>
+	<style>
+		div.export {
+			margin: auto;
+			width: 1680px;
+			height: 2376px;
+			font-size: 25px;
+			font-family: NSimSun;
+			font-weight: 300
+		}
+
+		table.coil {
+			border: 1px solid;
+			text-align: center;
+			border-collapse: collapse
+		}
+
+		table.coil td,
+		th {
+			padding: 5px;
+			border: 1px solid;
+			text-align: center;
+		}
+	</style>
+</head>
+
+<body>
+	<div id="design">
+		<p>容量：<input type="text" v-model.number="capacity" size='5'> kVA，频率：<input type="text" v-model.number="freq"
+				size='5'>Hz，
+			分接头：<select name="tap" v-model.number="tap">
+				<option value="3">±5%</option>
+				<option value="5">±5，±2.5%</option>
+			</select>，
+			高压侧连接：<select name="jg1" v-model.number="jg1">
+				<option value="1">Y</option>
+				<option value="2">D</option>
+			</select>，
+			低压侧连接：<select name="jg2" v-model.number="jg2">
+				<option value="1">y</option>
+				<option value="2">d</option>
+			</select>，
+			高压侧电压：<input type="text" v-model.number="v1" size='5'> kV，
+			低压侧电压：<input type="text" v-model.number="v2" size='5'> kV
+
+			<p>容量：{{ capacity }}kVA
+				</br>频率：{{ freq }}Hz</br>
+				高压侧线电压：{{ v1 }}，{{ v1*1.05|numformat(4) }}，{{ v1*0.95|numformat(4) }}kV，
+				相电压：{{vp1|numformat(4)}}kV，线电流：{{i1|numformat(4)}}A，相电流：{{ip1|numformat(4)}}A</br>
+				低压侧线电压：{{ v2 }}kV，相电压：{{vp2|numformat(4)}}kV，线电流：{{i2|numformat(4)}}A，相电流：{{ip2|numformat(4)}}A</br>
+				联结组：{{(jg1==1?'Y':'D')+(jg2==1?'y':'d')}}
+				</br>分接头：{{tap==3?'±5%':'±5,±2.5%'}}
+				</br>导线材料：{{coil_material}}</p>
+
+			<p>铁芯直径：{{55*Math.pow(capacity/3,0.25) | numformat(4)}}到{{60*Math.pow(capacity/3,0.25) | numformat(4)}} mm
+			</p>
+
+			<p>step1：根据以上范围及表A-10选择铁芯直径(mm)：<input type="text" v-model.number="coreD" size='3'>，
+				铁芯角重(kg)：<input type="text" v-model.number="Gdelta" size='3'>，
+				铁芯视在截面积(Az1,mm^2)：<input type="text" v-model.number="Az1" size='3'>，
+				撑条数：<input type="text" v-model.number="Nt2" size='3'>，
+				叠压系数Kdp：<input type="text" v-model.number="Kdp" size='3'>，
+				铁芯净截面积(Az,mm^2)：{{Az|numformat(4)}}</p>
+
+			<p> step2：选择铁芯磁密Bm1(T)：<input type="text" v-model.number="Bm1" size='5'> (一般1.4-1.7T)，
+				匝电压Et：{{et|numformat(4)}}V，
+				高压侧匝数：{{1000*vp1*1.05/et|numformat(2)}}，{{1000*vp1/et|numformat(2)}}，{{1000*vp1*0.95/et|numformat(2)}}，
+				低压侧匝数：{{1000*vp2/et|numformat(2)}}</p>
+
+			<p>step3：根据以上结果选择高压侧最大匝数：<input type="text" v-model.number="t1primemax" size='5'>，
+				根据磁密填入铁芯单位损耗：<input type="text" v-model.number="unitloss" size='5'>W/kg；
+				励磁容量：<input type="text" v-model.number="qc" size='5'>VA/kg；
+				单位接缝面积励磁容量：<input type="text" v-model.number="qj" size='5'>VA/cm^2；
+			</p>
+
+			<p>step4：根据以上结果手动设置，高压侧：<input type="text" v-model.number="t1max" size='5'>，<input type="text"
+					v-model.number="t1mid" size='5'>，<input type="text" v-model.number="t1min" size='5'>
+				低压侧：<input type="text" v-model.number="t2" size='5'></p>
+
+			<p>step5：选择电密J(见书本P51，A/mm^2) 高压侧：<input type="text" v-model.number="j1"
+					size='5'>，截面积：{{dsprime1|numformat(4)}} mm^2，
+				</br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+				低压侧：<input type="text" v-model.number="j2" size='5'>，
+				截面积：{{dsprime2|numformat(4)}} mm^2，
+				轴向并联<input type="text" v-model.number="paxis" size='3'>根，
+				辐向并联<input type="text" v-model.number="pradius" size='3'>根，
+				单根导线面积：{{dsprime2/parallelnum|numformat(4)}} mm^2</p>
+
+			<p>step6：根据以上结果选择高压侧导线直径（表A-14）：<input type="text" v-model.number="coil1d" size='5'>，
+				截面积：{{ds1|numformat(4)}}mm^2，Nemex纸绝缘，N-0.27，
+				辐向裕度系数：<input type="text" v-model.number="mgrds1" size='3'>，
+				轴向裕度系数：<input type="text" v-model.number="mgaxis1" size='3'>
+				</br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+				低压侧导线（表A-15）：截面积：<input type="text" v-model.number="ds2" size='5'>mm^2，
+				厚度a：<input type="text" v-model.number="coil2a" size='5'>mm，宽度b：<input type="text"
+					v-model.number="coil2b" size='5'>mm，Nemex纸绝缘，N-0.33
+				辐向裕度系数：<input v-model.number="mgrds2" size='3'>，轴向裕度系数：<input type="text" v-model.number="mgaxis2"
+					size='3'>
+				</br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+				低压绕组辐向宽度：{{c2rwidth|numformat(4)}} mm，轴向长度：{{c2alength|numformat(4)}} mm
+				电抗计算高度：{{XL2calheight|numformat(2)}}mm，窗高H0：{{c2alength|numformat(2)}}+
+				<input size=2 type="text" v-model.number="H0comp2" />=
+				<input size=2 type="text" v-model.number="H02" />mm
+			</p>
+			<p>step7：设计高压侧绕组分层分段：
+				<button @click='addsection'>增加段数</button> <button @click='removesection'>减少段数</button>
+				<button @click='addlayer'>增加层数</button> <button @click='removelayer'>减少层数</button>
+				<ul id="hsl" v-on:keyup='evalturns'>
+					分段：从上到下；分层：从内到外
+					<ul class="list-none">
+						<p>
+							<li v-for='idx2 in hlayers'>
+								第{{idx2+1}}层：绕 <input size=2 value=0 /> 匝，净高度{{layerheight[idx2]|numformat(4)}} mm
+							</li>
+						</p>
+						绕{{hsections_cnt}}段，总匝数：{{totalturns1|numformat(3)}}；&nbsp;
+						层间电压:{{layervoltage|numformat(3)}}V；&nbsp;
+						层绝缘：<input type="text" v-model.number="hlayerinsulator" size='3'> 张0.127 Nomex纸；
+						段间距离：<input type="text" v-model.number="sectiondistance" size='3'> mm
+						<br />辐向宽度：{{c1rwidth|numformat(4)}} mm；
+						根据绕组最大净高度，并考虑段间距离，
+						设计高压侧绕组高度(mm)： <input size=2 type="text" v-model.number="c1alength" />；
+						电抗计算高度：{{XL1calheight|numformat(3)}}mm，
+						窗高H0：{{c1alength}}+<input size=2 type="text" v-model.number="H0comp" />=
+						<input size=2 type="text" v-model.number="H0" />mm
+					</ul>
+				</ul>
+			</p>
+			<p>step8：绝缘半径计算(mm)<br>
+				&nbsp;&nbsp;&nbsp;&nbsp;高压绕组：总长度(m)：{{totallength1*1.05|numformat(2)}}，{{totallength1|numformat(2)}}，
+				{{totallength1*0.95|numformat(2)}}；平均匝长(m)：{{totallength1/t1mid|numformat(4)}}；
+				145℃电阻(Ω) {{resister1|numformat(5)}}；导线质量(kg)：{{coilweight1|numformat(3)}}；<br>
+				&nbsp;&nbsp;&nbsp;&nbsp;低压绕组：总长度(m)：{{totallength2|numformat(2)}}；平均匝长(m)：{{totallength2/t2|numformat(4)}}；
+				145℃电阻(Ω) {{resister2|numformat(5)}}；导线质量(kg)：{{coilweight2|numformat(3)}}；<br>
+
+				<ul class="list-none">
+					<li class="list-none">
+						&nbsp;&nbsp;&nbsp;&nbsp;{{insulatorR1}} (铁芯直径{{coreD}}/2)
+					</li>
+					<li class="list-none" v-on:keyup.stop="calcR1R2" id="R1R2">
+						+ <input size=2 v-on:keyup.stop="calcS1" type="text"
+							v-model.number="insulatorS1" />(铁芯到低压内半径距离)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+						<input size=2 type="text" v-model.number="insulatorS10" />(气隙距离)
+						+<input size=2 type="text" v-model.number="insulatorS11" />(铁芯外筒厚)
+						+<input size=2 type="text" v-model.number="insulatorS12" />(低压内筒厚)
+					</li>
+					<li class="list-none">
+						&nbsp;&nbsp;{{insulatorR2}} &nbsp;&nbsp;(低压内半径：{{insulatorR1}}+{{insulatorS1}})
+					</li>
+					<li class="list-none">
+						+{{c2rwidth|numformat(2)}}&nbsp;&nbsp;(低压绕组辐向厚)&nbsp;&nbsp;&nbsp;&nbsp;
+						低压平均半径：({{insulatorR2}}+{{insulatorR3}})/2={{lravg|numformat(2)}}
+					</li>
+					<li class="list-none">
+						&nbsp;&nbsp;{{insulatorR3|numformat(2)}}&nbsp;&nbsp;(低压外半径)
+					</li>
+					<li class="list-none">
+						+<input size=2 type="text" v-model.number="insulatorS3" />&nbsp;&nbsp;低压到高压绕组的距离
+						(含<input size=1 type="text" v-model.number="insulatorboard" />mm绝缘板)，
+						漏磁通道平均半径：({{insulatorR3}}+{{insulatorR4}})/2={{hlravg|numformat(2)}}
+					</li>
+					<li class="list-none">
+						&nbsp;&nbsp;{{insulatorR4|numformat(2)}}&nbsp;&nbsp;(高压内半径)
+					</li>
+					<li class="list-none">
+						+{{c1rwidth|numformat(2)}}&nbsp;&nbsp;(高压绕组辐向厚)&nbsp;&nbsp;&nbsp;&nbsp;
+						高压平均半径：({{insulatorR4}}+{{insulatorR5}})/2={{hravg|numformat(2)}}
+					</li>
+					<li class="list-none">
+						&nbsp;&nbsp;{{insulatorR5|numformat(2)}}&nbsp;&nbsp;(高压外半径)
+					</li>
+					<li class="list-none">
+						*2
+					</li>
+					<li class="list-none">
+						&nbsp;&nbsp;{{insulatorR5*2|numformat(2)}}&nbsp;&nbsp;(高压绕组直径)
+					</li>
+					<li class="list-none">
+						+<input size=2 type="text" v-model.number="insulatorphase" />&nbsp;&nbsp;相间绝缘距离
+					</li>
+					<li class="list-none">
+						&nbsp;&nbsp;{{m0|intformat}}&nbsp;&nbsp;(铁芯柱中心距)
+					</li>
+				</ul>
+			</p>
+			<p>step9：铁芯计算-2<br>
+				<ul>
+					<li class="list-none">
+						芯柱重Gz=3*{{H0|numformat(2)}}*{{Az|numformat(2)}}*{{core_density|numformat(2)}}/1e7={{Gz|numformat(2)}}kg；
+					</li>
+					<li class="list-none">
+						铁轭质量：Ge=4*{{m0|numformat(2)}}*{{Az|numformat(2)}}*{{core_density|numformat(2)}}/1e7={{Ge|numformat(2)}}；
+					</li>
+					<li class="list-none">
+						角质量：{{Gdelta|numformat(2)}}kg；
+					</li>
+					<li class="list-none">
+						总质量：{{Gtotal|numformat(2)}}kg；
+					</li>
+					<li class="list-none" v-on:keyup.stop="calcPo">
+						选择铁耗工艺系数Kpo(1.15~1.35)：<input size=2 type="text" v-model.number="Kpo" />
+					</li>
+					<li class="list-none" v-on:keyup.stop="calcKpo">
+						空载损耗：Po=<input size=2 type="text" v-model.number="Po" />
+					</li>
+					<li class="list-none">
+						空载励磁电流：选择附加系数K0<input size=2 type="text" v-model.number="K0" />
+					</li>
+					<li class="list-none">
+						无功分量Ior(%)={{Ior|numformat(3)}}；有功分量Ioa(%)={{Ioa|numformat(3)}};空载电流Io(%)={{Io|numformat(3)}}；
+					</li>
+				</ul>
+			</p>
+			<p>step10：短路阻抗计算
+				<ul>
+					<li class="list-none">
+						a1*r1/3=({{c2rwidth|numformat(2)}}-{{nomex2|numformat(2)}})*{{lravg|numformat(2)}}/3=
+						{{a1xr1d3|numformat(2)}}&nbsp;mm^2<br>
+						a12*r12=({{insulatorS3|numformat(2)}}+{{nomex1|numformat(2)}}/2+{{nomex2|numformat(2)}}/2)*{{hlravg|numformat(2)}}
+						={{a12xr12|numformat(2)}}&nbsp;mm^2<br>
+						a2*r2/3=({{c1rwidth|numformat(2)}}-{{nomex1|numformat(2)}})*{{hravg|numformat(2)}}/3=
+						{{a2xr2d3|numformat(2)}}&nbsp;mm^2<br>
+						Σar=a1*r1/3+a12*r12+a2r2/3=
+						{{a1xr1d3|numformat(2)}}+
+						{{a12xr12|numformat(2)}}+
+						{{a2xr2d3|numformat(2)}}={{sigmaar|numformat(2)}}&nbsp;mm^2
+					</li>
+					<li class="list-none">
+						平均电抗计算高度：Hk=({{XL1calheight}}+{{XL2calheight}})/2={{Hk|numformat(2)}}&nbsp;mm
+					</li>
+					<li class="list-none">
+						λ= {{c1rwidth|numformat(2)}}+ {{c2rwidth|numformat(2)}}+{{insulatorS3|numformat(2)}}-
+						({{nomex1|numformat(2)}}+{{nomex2|numformat(2)}})/2={{lamda|numformat(2)}}&nbsp;mm
+					</li>
+					<li class="list-none">
+						洛氏系数：ρ1=1- {{lamda|numformat(2)}}/π/{{Hk|numformat(2)}}={{rho1|numformat(4)}}；
+						电抗修正系数：K=<input size=2 type="text" v-model.number="XLfactor" />
+					</li>
+					<li class="list-none">
+						电抗分量：ux(%)={{uxpercent|numformat(4)}}；
+					</li>
+					<li class="list-none">
+						电阻分量：ua(%)=
+						{{loadloss|numformat(2)}}/{{capacity*1000|numformat(2)}}*100={{uapercent|numformat(4)}}；
+					</li>
+					<li class="list-none">
+						短路阻抗：uk(%)={{ukpercent|numformat(4)}}；
+					</li>
+				</ul>
+			</p>
+			<p>step11：负载损耗计算(145℃)<br>
+				电阻损耗：高压：3I^R={{rloss1|numformat(3)}}W；
+				低压：3I^R={{rloss2|numformat(3)}}W；<br>
+				涡流损耗(145℃)：高压：Kw1(%)={{kw1|numformat(3)}}，损耗：{{closs1|numformat(4)}}W
+				低压：Kw2(%)={{kw2|numformat(3)}}，损耗：{{closs2|numformat(4)}}W；<br>
+				负载损耗：{{loadloss|numformat(3)}}W，空载损耗：{{Po|numformat(3)}}W<br>
+				总损耗：{{totalloss|numformat(3)}}
+			</p>
+			<p>step12：温升计算<br>
+				<ul class="list-none">
+					<li class="list-none">
+						高压绕组撑条数：<input size=2 type="text" v-model.number="Nt1" />；高压绕组撑条宽度：<input size=2 type="text"
+							v-model.number="bt1" />
+					</li>
+					<li class="list-none">
+						低压内散热面积：S11={{Sinner2|numformat(3)}}m^2
+					</li>
+					<li class="list-none">
+						低压外散热面积：S12={{Souter2|numformat(3)}}m^2
+					</li>
+					<li class="list-none">
+						低压总散热面积：SL={{Stotal2|numformat(3)}}m^2
+					</li>
+					<li class="list-none">
+						低压温升：TLV={{TLV|numformat(3)}}K
+					</li>
+					<li class="list-none">
+						高压内散热面积：S21={{Sinner1|numformat(3)}}m^2
+					</li>
+					<li class="list-none">
+						高压外散热面积：S22={{Souter1|numformat(3)}}m^2
+					</li>
+					<li class="list-none">
+						高压总散热面积：SH={{Stotal1|numformat(3)}}m^2
+					</li>
+					<li class="list-none">
+						THV={{THV|numformat(3)}}K
+					</li>
+				</ul>
+				<p>step13：重量计算<br>
+					<ul class="list-none">
+						<li class="list-none">
+							铁芯质量：{{Gtotal|numformat(3)}}kg
+						</li>
+						<li class="list-none">
+							导线质量：{{coilweight1+coilweight2|numformat(3)}}kg
+						</li>
+						<li class="list-none">
+							器身及附件重量：<input size=2 type="text" v-model.number="weightfactor" />*
+							{{Gtotal+coilweight1+coilweight2|numformat(3)}}={{weightfactor*(Gtotal+coilweight1+coilweight2)|numformat(3)}}kg
+						</li>
+						<li class="list-none">
+							总质量：<input size=2 type="text" v-model.number="totalweight" />kg
+						</li>
+					</ul>
+				</p>
+				<hr />
+				<p style="margin-top:2em;">step14：<textarea cols="100" rows="20" placeholder="我的感想" v-model="feelings"></textarea>
+					
+				</p>
+				<p style="margin-left:4.5em;"><button @click='deriveReport'>导出设计报告</button></p>
+				
+				<div class="export" style="display: none">
+					<h2>1.技术条件</h2>
+					<ul class="list-squre datalist">
+						<li> 容量：`{{capacity}}kVA`</li>
+						<li> 电压比：`{{v1}} ±5% //{{v2}} kV`</li>
+						<li>频率：`{{freq}}Hz` </li>
+						<li>联接组：`Dyn11` </li>
+						<li>绝缘材料耐热等级：`H`级`(145℃)`</li>
+						<li>短路阻抗：`4%(text(允许在)3.6%-4.4%text(之间))` </li>
+						<li>负载损耗`(145℃)`：`≤6600W`</li>
+						<li>空载损耗：`≤1100W`</li>
+						<li>空载电流：`≤1.8%`</li>
+						<li>绕组平均温升：`≤125K`</li>
+						<li>铁心材料：`DQ122G-30text(，叠压系数)0.97`</li>
+						<li>导线材料：铜导线` ρ_(145℃)=0.02616Ω·mm^2//m`</li>
+					</ul>
+					<h2>2.铁芯计算</h2>
+					<ol class="datalist">
+						<li> 铁芯直径：`D=k\root(4)(S_r),k\in[55,60]=>D\in[{{55*Math.pow(capacity/3,0.25) | numformat(2)}},{{60*Math.pow(capacity/3,0.25) | numformat(2)}}]mm`，选择`D={{coreD| numformat(0)}}mm`
+						</li>
+						<li> 叠片系数：`k_(dp)={{Kdp}}`，铁芯净截面积：`A_z={{Az1}}\times{{Kdp}}={{Az}}mm^2`</li>
+						<li>硅钢片型号为30Q120，磁密`B_m={{Bm1| numformat(2)}}T`，单位损耗`{{unitloss}}W//kg` ，励磁容量`{{qc}}VA//kg` </li>
+						<li>单位接缝面积励磁容量：`q_j={{qj| numformat(3)}}VA//cm^2` </li>
+						<li>铁芯柱质量：`G_z={{phase==3?3:2| numformat(3)}}\times{{H0| numformat(3)}}\times{{Az| numformat(3)}}\times{{core_density| numformat(3)}}\times10^-7={{Gz| numformat(3)}}kg`
+						</li>
+						<li>铁轭质量：`G_e=4\times{{m0| numformat(3)}}\times{{Az| numformat(3)}}\times{{core_density| numformat(3)}}\times10^-7={{Ge| numformat(3)}}kg`
+						</li>
+						<li>角质量：`G_\Delta={{Gdelta| numformat(3)}}kg`</li>
+						<li>总质量：`G=G_z+G_e+G_\Delta={{Gtotal| numformat(3)}}kg`</li>
+						<li>空载损耗：`P_0={{Gtotal| numformat(3)}}\times{{Kpo| numformat(3)}}\times
+							{{unitloss| numformat(3)}} = {{Po| numformat(3)}} W`</li>
+						<li>空载励磁电流：</li>
+						<li>无功分量：`I_(or)(%)=\frac{ {{K0| numformat(3)}} \times ( {{qc| numformat(3)}}\times
+							{{Gtotal| numformat(3)}}+ 6\times\sqrt 2 \times {{Az| numformat(3)}} \times
+							{{qj| numformat(3)}} ) }{ {{capacity| numformat(3)}}\times10 }={{Ior| numformat(3)}}`</li>
+						<li>有功分量：`I_(oa)(%)= \frac{ {{Po| numformat(3)}} }{ {{capacity| numformat(3)}}\times100 }
+							={{Ioa| numformat(3)}} `</li>
+						<li>空载电流：` I_o(%)=root(2)( {{Ior| numformat(3)}}^2+{{Ioa| numformat(3)}}^2 )
+							={{Io| numformat(3)}} `</li>
+					</ol>
+					<h2>3.绕组计算</h2>
+
+					<ol class="datalist">
+						<table class="coil">
+							<tr>
+								<th>{{null}}</th>
+								<th colspan="6">高压</th>
+								<th colspan="6">低压</th>
+							</tr>
+							<tr>
+								<td>容量/`kVA`</td>
+								<td colspan="6">`{{capacity| numformat(3) }}` </td>
+								<td colspan="6">`{{capacity| numformat(3) }}` </td>
+							</tr>
+							<tr>
+								<td>联结组</td>
+								<td colspan="6">`{{jg1==2?'D':'Y' }} `</td>
+								<td colspan="6">`{{jg2==1?'y':'d' }} `</td>
+							</tr>
+							<tr>
+								<td>匝电压/`V`/匝</td>
+								<td colspan="12">`{{et| numformat(3) }} `</td>
+							</tr>
+							<tr>
+								<td>线电压/`V`</td>
+								<td colspan="2">`{{v1*1.05*1000| numformat(3) }}` </td>
+								<td colspan="2">`{{v1*1000| numformat(3) }}` </td>
+								<td colspan="2">`{{v1*0.95*1000| numformat(3) }}` </td>
+								<td colspan="6">`{{v2*1000| numformat(3) }}` </td>
+							</tr>
+							<tr>
+								<td>相电压/`V`</td>
+								<td colspan="2">`{{vp1*1.05*1000| numformat(3) }}` </td>
+								<td colspan="2">`{{vp1*1000| numformat(3) }}` </td>
+								<td colspan="2">`{{vp1*0.95*1000| numformat(3) }}` </td>
+								<td colspan="6">`{{vp2*1000| numformat(3) }}` </td>
+							</tr>
+							<tr>
+								<td>电流/`A`</td>
+								<td colspan="6">`{{ip1| numformat(3) }}` </td>
+								<td colspan="6">`{{ip2| numformat(3) }}` </td>
+							</tr>
+							<tr>
+								<td>线圈匝数 </td>
+								<td colspan="2">`{{t1max| numformat(3) }}` </td>
+								<td colspan="2">`{{t1mid| numformat(3) }}` </td>
+								<td colspan="2">`{{t1min| numformat(3) }}` </td>
+								<td colspan="6">`{{t2| numformat(3) }}` </td>
+							</tr>
+							<tr>
+								<td v-bind:rowspan='hlayers_cnt+2' >绕组型式</td>
+								<td colspan="6">分段圆筒式({{hsections_cnt}}段{{hlayers_cnt}}层) </td>
+								<td colspan="6">单层圆筒式 </td>
+							</tr>
+							<tr v-for='(item,idx) in coils1'>
+								<td colspan="2"style="border:0px;">`第{{idx+1}}层` </td>
+								<td colspan="4"style="border:0px;">`{{item}}匝` </td>
+								<td colspan="6" v-bind:rowspan='hlayers_cnt+1' v-if='idx==0' > `{{t2}}` 匝 </td>
+							</tr>
+							<tr>
+									<td colspan="6">`共{{hlayers_cnt}}层`，`{{t1max/hsections_cnt}}`匝，`{{t1max/hsections_cnt}}\times{{hsections_cnt}}={{t1max}}`匝</td>
+									</tr>
+							<tr>
+								<td>线规</td>
+								<td colspan="6">Nomex纸包绝缘，N-0.27<br>`\phi {{coil1d| numformat(3) }}//{{coil1d+nomex1| numformat(3) }} `</td>
+								<td colspan="6">Nomex纸包绝缘，N-0.33<br>
+									`{{coil2a| numformat(3) }}\times{{coil2b| numformat(3) }} // {{coil2a+nomex2| numformat(3) }}\times {{coil2b+nomex2| numformat(3) }}`<br>
+									({{paxis>0?'轴向并联'+paxis+'根':null}}，{{ pradius >0?'辐向并联'+pradius+'根':null }})
+								</td>
+							<tr>
+								<td>截面/`mm^2` </td>
+								<td colspan="6">`{{ds1| numformat(3) }}` </td>
+								<td colspan="6">`{{parallelnum| numformat(3) }}\times {{ds2| numformat(3) }}={{ds2*parallelnum| numformat(3) }} `</td>
+							</tr>
+							<tr>
+								<td>电密/`A//mm^2` </td>
+								<td colspan="6">`{{j1| numformat(3) }}` </td>
+								<td colspan="6">`{{j2| numformat(3) }} `</td>
+							</tr>
+							<tr>
+								<td>平均匝长/`m` </td>
+								<td colspan="6">`{{totallength1/t1mid| numformat(3) }}` </td>
+								<td colspan="6">`{{totallength2/t2| numformat(3) }} `</td>
+							</tr>
+							<tr>
+								<td>总长/`m` </td>
+								<td colspan="6">`{{totallength1| numformat(3) }}({{totallength1*1.05| numformat(3) }})` </td>
+								<td colspan="6">`{{totallength2| numformat(3) }} `</td>
+							</tr>
+							<tr>
+								<td>145℃电阻/`\Omega` </td>
+								<td colspan="6">`{{resister1| numformat(3) }}` </td>
+								<td colspan="6">`{{resister2| numformat(3) }} `</td>
+							</tr>
+							<tr>
+								<td>导线质量/`kg` </td>
+								<td colspan="6">`{{coilweight1| numformat(3) }}` </td>
+								<td colspan="6">`{{coilweight2| numformat(3) }} `</td>
+							</tr>
+							<tr>
+								<td>层间电压/`V` </td>
+								<td colspan="6">`{{layervoltage| numformat(3) }}` </td>
+								<td colspan="6">`{{null| numformat(3) }} `</td>
+							</tr>
+							<tr>
+								<td>层绝缘 </td>
+								<td colspan="6">`{{hlayerinsulator| numformat(3) }}`张0.127Nomex纸 </td>
+								<td colspan="6">`{{null| numformat(3) }} `</td>
+							</tr>
+							<tr>
+								<td>辐向/`mm` </td>
+								<td colspan="6">`{{c1rwidth| numformat(3) }}` </td>
+								<td colspan="6">`{{c2rwidth| numformat(3) }} `</td>
+							</tr>
+							<tr>
+								<td>轴向/`mm` </td>
+								<td colspan="6">`{{c1alength| numformat(3) }}` </td>
+								<td colspan="6">`{{c2alength| numformat(3) }} `</td>
+							</tr>
+							<tr v-for=' (item,idx) in layerheight'>
+									<td >第`{{idx+1}}`层/`mm`</td>
+									<td colspan="6">`{{coil1d + nomex1}}\times {{coils1[idx]+1}}  \times {{hsections_cnt}} times {{mgaxis1}}+{{sectiondistance}}\times{{hsections_cnt-1}} + {{ c1alength-(item+ sectiondistance * (hsections_cnt-1)) |intformat}} ={{c1alength}}`</td>
+							<td colspan="6" v-bind:rowspan='hlayers_cnt' v-if='idx==0' > `{{coil2b+nomex2}} \times {{mgaxis2}} \times {{t2+1}} \times{{paxis}}={{c2alength|intformat}}` </td>
+					</tr>
+
+							<tr>
+								<td>绕组电抗计算高度/`mm` </td>
+								<td colspan="6">`{{XL1calheight| numformat(3) }}` </td>
+								<td colspan="6">`{{XL2calheight| numformat(3) }} `</td>
+							</tr>
+							<tr>
+									<td>窗高`H_0//mm` </td>
+									<td colspan="6">`{{c1alength|intformat}}+{{H0-c1alength|intformat }}={{H0| intformat}}` </td>
+									<td colspan="6">`{{c2alength|intformat}}+{{H0-c2alength|intformat }}={{H0| intformat}} `</td>
+								</tr>
+							</table>
+					</ol>
+					<h2>4.绝缘半径计算</h2>
+					<table>
+						<tr>
+							<td colspan="3" style="padding-left:2em;padding: 15px;">以下数据单位均为`mm`</td>
+						</tr>
+						<tr>
+							<td>&nbsp;&nbsp;`{{insulatorR1}}`</td>
+							<td colspan="2" style="padding-left:2em">(铁芯直径`{{coreD|numformat(2)}}//2`)</td>
+						</tr>
+						<tr>
+							<td style="border-bottom:black solid 2px;">`+ {{insulatorS1|numformat(2)}}`</td>
+							<td style="padding-left:2em">(铁芯到低压内半径距离)</td>
+							<td style="padding-left:2em">`{{insulatorS10|numformat(2)}}`(气隙距离)`+ {{insulatorS11|numformat(2)}}`(铁芯外筒厚)`+
+								{{insulatorS12|numformat(2)}}`(低压内筒厚)</td>
+						</tr>
+						<tr>
+							<td>&nbsp;&nbsp;`{{insulatorR2}}`</td>
+							<td colspan="2" style="padding-left:2em">(低压内半径：`{{insulatorR1|numformat(2)}}+{{insulatorS1|numformat(2)}}`)</td>
+						</tr>
+						<tr>
+							<td style="border-bottom:black solid 2px;">`+{{c2rwidth|numformat(2)}}`</td>
+							<td style="padding-left:2em">(低压绕组辐向厚)</td>
+							<td style="padding-left:2em">
+								低压平均半径：`({{insulatorR2|numformat(2)}}+{{insulatorR3|numformat(2)}})//2={{lravg|numformat(2)}}`</td>
+						</tr>
+						<tr>
+							<td>`{{insulatorR3|numformat(2)}}`</td>
+							<td style="padding-left:2em">(低压外半径)</td>
+						</tr>
+						<tr>
+							<td style="border-bottom:black solid 2px;">`+{{insulatorS3|numformat(2)}}`</td>
+							<td style="padding-left:2em">(低压到高压绕组的距离，含`{{insulatorboard|numformat(2)}}mm`绝缘板)</td>
+							<td style="padding-left:2em">
+								漏磁通道平均半径：`({{insulatorR3|numformat(2)}}+{{insulatorR4|numformat(2)}})//2={{hlravg|numformat(2)}}`</td>
+						</tr>
+						<tr>
+							<td>`{{insulatorR4|numformat(2)}}`</td>
+							<td style="padding-left:2em">(高压内半径)</td>
+						</tr>
+						<tr>
+							<td style="border-bottom:black solid 2px;">`+{{c1rwidth|numformat(2)}}`</td>
+							<td style="padding-left:2em">(高压绕组辐向厚度)</td>
+							<td style="padding-left:2em">
+								高压平均半径：`({{insulatorR4|numformat(2)}}+{{insulatorR5|numformat(2)}})//2={{hravg|numformat(2)}}`</td>
+						</tr>
+						<tr>
+							<td>`{{insulatorR5|numformat(2)}}`</td>
+							<td style="padding-left:2em">(高压外半径)</td>
+						</tr>
+						<tr>
+							<td style="border-bottom:black solid 2px;">`\times2`</td>
+						</tr>
+						<tr>
+							<td>`{{insulatorR5*2|numformat(2)}}`</td>
+							<td style="padding-left:2em">(高压绕组直径)</td>
+						</tr>
+						<tr>
+							<td style="border-bottom:black solid 2px;">`+{{insulatorphase|numformat(2)}}`</td>
+							<td style="padding-left:2em">(相间绝缘距离)</td>
+						</tr>
+						<tr>
+							<td>`{{m0|intformat}}`</td>
+							<td style="padding-left:2em">(铁芯柱中心距)</td>
+						</tr>
+					</table>
+
+					<h2>5.短路阻抗计算</h2>
+					<ol class="datalist">
+						<li>`(a_1r_1)/3 =
+							(({{c2rwidth|numformat(2)}}-{{nomex2|numformat(2)}})\times{{lravg|numformat(2)}})/3=
+							{{a1xr1d3|numformat(2)}}mm^2 `</li>
+						<li>`a_12r_12 =
+							({{insulatorS3|numformat(2)}}+{{nomex1|numformat(2)}}//2+{{nomex2|numformat(2)}}//2)
+							\times{{hlravg|numformat(2)}}
+							={{a12xr12|numformat(2)}}mm^2 `</li>
+						<li>`(a_2r_2)/3=(({{c1rwidth|numformat(2)}}-{{nomex1|numformat(2)}})
+							\times{{hravg|numformat(2)}})/3=
+							{{a2xr2d3|numformat(2)}}mm^2`</li>
+						<li>漏磁面积：`\suma_r=(a_1 \timesr_1//3+a_12 \timesr_12+a_2r_2)/3=
+							{{a1xr1d3|numformat(2)}}+{{a12xr12|numformat(2)}}+
+							{{a2xr2d3|numformat(2)}}={{sigmaar|numformat(2)}}mm^2`</li>
+						<li>平均电抗计算高度：`H_k=({{XL1calheight}}+{{XL2calheight}})/2={{Hk|numformat(2)}}mm`</li>
+						<li >
+							`\lamda= {{c1rwidth|numformat(2)}}+ {{c2rwidth|numformat(2)}}+{{insulatorS3|numformat(2)}}-
+							({{nomex1|numformat(2)}}+{{nomex2|numformat(2)}})/2={{lamda|numformat(2)}}mm`
+						</li>
+						<li >
+							洛氏系数：`\rho_1=1-
+							{{lamda|numformat(2)}}/(\pi\times{{Hk|numformat(2)}})={{rho1|numformat(4)}}`；
+							电抗修正系数：`K={{XLfactor}}`
+						</li>
+						<li >
+							电抗分量：`u_x(%)= (49.6 \times{{freq|numformat(3)}} \times{{ip2|numformat(3)}}
+							\times{{t2|numformat(3)}} \times{{sigmaar|numformat(3)}} \times{{rho1|numformat(3)}}
+							\times{{XLfactor|numformat(3)}})/({{et|numformat(4)}} \times{{Hk|numformat(3)}} \times10^7)
+							={{uxpercent|numformat(4)}}`；
+						</li>
+						<li >
+							电阻分量：`u_a(%)=
+							({{loadloss|numformat(2)}}\times100)/{{capacity*1000|numformat(2)}}={{uapercent|numformat(4)}}`；
+						</li>
+						<li >
+							短路阻抗：`u_k(%)=sqrt( {{uxpercent|numformat(3)}}^2+{{uapercent|numformat(3)}}^2
+							)={{ukpercent|numformat(3)}}`；
+						</li>
+					</ol>
+					<h2>6.负载损耗计算(145℃)</h2>
+					<ol class="datalist">
+						<li>电阻损耗：
+						</li>
+						<li>高压侧：`3I^2R=3\times{{ip1|numformat(3)}}^2\times{{resister1|numformat(3)}}={{rloss1|numformat(3)}}W`</li>
+						<li>低压侧：`3I^2R=3\times{{ip2|numformat(3)}}^2\times{{resister2|numformat(3)}}={{rloss2|numformat(3)}}W`</li>
+						<li>涡流损耗(145℃)：</li>
+						<li>高压侧：`K_(w1)(%)=3.8 \times ({{freq|numformat(3)}} \times {{t1mid|numformat(3)}} \times
+							{{ds1|numformat(3)}} \times {{coil1d|numformat(3)}} \times {{rho1|numformat(3)}} /
+							{{XL1calheight|numformat(3)}})^2 \times 10^(-7) ={{kw1|numformat(3)}}
+							`；
+						</li>
+						<li>`P_(w1)=({{rloss1|numformat(3)}}\times{{kw1|numformat(3)}})/100={{closs1|numformat(3)}}W`</li>
+						<li>低压侧：`K_(w2)(%)=3.8 \times ({{freq|numformat(3)}} \times {{t2|numformat(3)}} \times
+							{{ds2|numformat(3)}} \times {{coil2a|numformat(3)}} \times {{parallelnum|numformat(3)}}
+							\times {{rho1|numformat(3)}} / {{XL2calheight|numformat(3)}})^2 \times
+							10^(-7)={{kw2|numformat(3)}}
+							`；
+						</li>
+						<li>`P_(w2)=({{rloss2|numformat(3)}}\times{{kw2|numformat(3)}})/100={{closs2|numformat(3)}}W`</li>
+						<li>负载损耗：`{{rloss1|numformat(3)}} + {{closs1|numformat(3)}} + {{rloss2|numformat(3)}} +
+							{{closs2|numformat(3)}}={{loadloss|numformat(3)}}W `</li>
+						<li>空载损耗：`{{Po|numformat(3)}}W `</li>
+						<li>总损耗：`{{Po|numformat(3)}}+{{loadloss|numformat(3)}}={{totalloss|numformat(1)}}W `</li>
+					</ol>
+					<h2>7.温升计算</h2>
+					<ol class="datalist">
+						<li>低压内散热面积：`{{phase|numformat(3)}} \times (2 \times 3.14159 \times {{insulatorR2|numformat(3)}}
+							- {{bt2|numformat(3)}} \times {{Nt2|numformat(3)}}) \times {{XL2calheight|numformat(3)}}
+							\times10^-6={{Sinner2|numformat(3)}}m^2`</li>
+						<li>低压外散热面积：`{{phase|numformat(3)}} \times (2 \times 3.14159 \times
+							{{insulatorR3|numformat(3)}}) \times {{XL2calheight|numformat(3)}}
+							\times10^-6={{Souter2|numformat(3)}}m^2`</li>
+						<li>低压总散热面积：`{{Sinner2|numformat(3)}} + {{Souter2|numformat(3)}}={{Stotal2|numformat(3)}}m^2`
+						</li>
+						<li>低压温升：`{{KTL|numformat(3)}} \times (({{rloss2|numformat(3)}} + {{closs2|numformat(3)}}) /
+							{{Stotal2|numformat(3)}})^{{nTL|numformat(3)}}={{TLV|numformat(3)}}K`</li>
+						<li>高压内散热面积：`{{phase|numformat(3)}} \times (2 \times 3.14159 \times {{insulatorR4|numformat(3)}}
+							- {{bt1|numformat(3)}} \times {{Nt1|numformat(3)}}) \times {{layerheight[0]|numformat(3)}}
+							\times10^-6={{Sinner1|numformat(3)}}m^2` </li>
+						<li>高压外散热面积：`{{phase|numformat(3)}} \times (2 \times 3.14159 \times
+							{{insulatorR5|numformat(3)}}) \times {{layerheight[layerheight.length - 1]|numformat(3)}}
+							\times10^-6 ={{Souter1|numformat(3)}}m^2`</li>
+						<li>高压总散热面积：`{{Sinner1|numformat(3)}} + {{Souter1|numformat(3)}}={{Stotal1|numformat(3)}}m^2`
+						</li>
+						<li>高压温升：`{{KTH|numformat(3)}} \times (({{rloss1|numformat(3)}} + {{closs1|numformat(3)}}) /
+							{{Stotal1|numformat(3)}})^{{nTH|numformat(3)}} ={{THV|numformat(3)}}K`</li>
+					</ol>
+					<h2>8.质量计算</h2>
+					<ol class="datalist">
+						<li>铁芯质量：`{{Gtotal|numformat(3)}}kg`</li>
+						<li>导线质量：`{{coilweight1+coilweight2|numformat(3)}}kg`</li>
+						<li>器身及附件重量：`{{weightfactor}}\times{{Gtotal+coilweight1+coilweight2|numformat(3)}}={{weightfactor*(Gtotal+coilweight1+coilweight2)|numformat(3)}}kg`
+						</li>
+						<li>总质量：`{{totalweight}}``kg`</li>
+					</ol>
+					<h2>9.设计感想</h2>
+					<p class="text">{{feelings}}</p>
+				</div>
+	</div>
+
+
+</body>
+
+<script>
+	sum = function sum(arr) {
+		if (!arr && !(arr instanceof Array)) {
+			return 0;
+		}
+		var sum = 0;
+		for (idx in arr) {
+			sum += parseInt(arr[idx]);
+		}
+		return sum;
+	};
+	Isinteger = function (obj) {
+		return Math.floor(obj) === obj
+	};
+	var vm = new Vue({
+		el: "#design",
+		data: {
+			feelings:null,
+			totalweight: 1165,
+			weightfactor: 1.15,
+			s3: Math.sqrt(3),
+			capacity: 315,	//容量
+			freq: 50,	//频率
+			tap: 3,	//分接头
+			v1: 10,	//线电压
+			v2: 0.4,
+			coreD: 190,	//铁芯直径
+			Az1: 264,	//铁芯截面积
+			Kdp: 0.97,	//叠压系数
+			jg1: 2,	//联结组，1=Y，2=D
+			jg2: 1,
+			Bm1: 1.45,//磁密
+			t1primemax: 1274,	//初选高压侧最大匝数
+			t1max: 1276,	//高压侧匝数
+			t1mid: 1215,
+			t1min: 1154,
+			t2: 28,		//低压侧匝数
+			j1: 2.400354683957561,	//电密
+			j2: 2.469922517312203,
+			coil1d: 2.36,	//高压侧导线直径
+			coil2a: 3.75,	//低压侧导线厚度
+			coil2b: 12.5,	//低压侧导线宽度
+			ds2: 46.02,		//低压侧导线单根面积
+			paxis: 2,		//轴向并绕数
+			pradius: 2,		//辐向并绕数
+			hsections_cnt: 4,	//高压侧分段数
+			hsections: [0, 1, 2, 3],
+			sectiondistance: 18,
+			mgaxis1: 1.04,	//轴向裕度
+			mgaxis2: 1.02,
+			mgrds1: 1.07,	//辐向裕度
+			mgrds2: 1.045,
+			hlayers_cnt: 5,		//高压侧分层数
+			llayer_cnt: 1,
+			llayers: [],
+			hlayers: [0, 1, 2, 3, 4],
+			coils1: [62,62,63,66,66],	//每层匝数
+			hlayerinsulator: 4,	//层间绝缘纸数
+			c1alength: 787,	//高压绕组高度
+			H0comp: 0,	//高压侧窗高-绕组高度
+			H0comp2: 0,
+			H0: 977,	//高压侧窗高
+			H02: 977,
+			nomex1: 0.27,//高压侧绝缘纸厚度
+			nomex2: 0.33,
+			insulatorS1: 11,//绝缘参数
+			insulatorS10: 10,
+			insulatorS11: 0.5,
+			insulatorS12: 0.5,
+			insulatorS3: 40,
+			insulatorboard: 3,
+			insulatorphase: 43,//相间绝缘距离
+			XLfactor: 1.01,//电抗修正系数
+			coil_material: 'copper',
+			resister_ratio: 0.02616,
+			coil_density: 8.9e3,
+			core_density: 7.65e3,
+			Kpo: 1.25,
+			Po: 841.6360890867759,
+			unitloss: 0.788,
+			KTL: 0.66,//低压温升经验系数
+			nTL: 0.8,
+			KTH: 0.46,
+			nTH: 0.8,
+			K0: 1.3,	//附加系数
+			qc: 0.905,	//励磁容量
+			Nt2: 8,	//低压绕组撑条数
+			bt2: 15,	//低压绕组撑条宽度
+			Nt1: 9,
+			bt1: 10,
+			Gdelta: 73.93,  //铁芯角重
+			qj:0.15,//单位接缝面积励磁容量
+			phase: 3		//相数
+			
+		},
+		computed: {
+			vp1: function () { return this.jg1 == 1 ? this.v1 / this.s3 : this.v1 },	//相电压
+			vp2: function () { return this.jg2 == 1 ? this.v2 / this.s3 : this.v2 },
+			i1: function () { return this.capacity / this.v1 / this.s3 },				//线电流
+			i2: function () { return this.capacity / this.v2 / this.s3 },
+			ip1: function () { return this.jg1 == 1 ? this.i1 : this.i1 / this.s3 },//相电流
+			ip2: function () { return this.jg2 == 1 ? this.i2 : this.i2 / this.s3 },
+			Az: function () { return this.Az1 * this.Kdp },		//铁芯净截面积
+			et: function () { return 4.44 * 50 * this.Bm1 * this.Az * 1e-4 },	//单匝电压/V
+			dsprime1: function () { return this.ip1 / this.j1 },	//初选高压导线截面积
+			dsprime2: function () { return this.ip2 / this.j2 },//初选低压导线截面积
+			ds1: function () { return this.coil1d * this.coil1d * 3.1415926 / 4 },//高压导线截面积
+			parallelnum: function () { return this.paxis * this.pradius },	//并绕总根数
+			totalturns1: function () { return this.hsections_cnt * sum(this.coils1) },	//高压侧总匝数，根据分层、分段改变
+			c2rwidth: function () { return (this.coil2a + this.nomex2) * this.pradius * this.mgrds2 },	//低压侧绕组辐向长度
+			c2alength: function () { return (this.coil2b + this.nomex2) * this.mgaxis2 * (this.t2 + 1) * this.paxis },//低压侧绕组轴向长度
+			c1rwidth: function () {
+				return this.mgrds1 * ((this.coil1d + this.nomex1) *
+					this.coils1.length + (this.coils1.length - 1) * this.hlayerinsulator * 0.127)
+			},//高压侧绕组辐向长度
+			layervoltage: function () { var arr = this.coils1.concat(); return arr.sort().pop() * 2 * this.et },	//高压绕组层间电压
+			insulatorR1: function () { return this.coreD / 2 },	//绝缘计算参数，铁芯半径
+			insulatorR2: function () { return this.insulatorS1 + this.insulatorR1 },	//低压内半径
+			insulatorR3: function () { return this.c2rwidth + this.insulatorR2 },	//低压外半径
+			insulatorR4: function () { return this.insulatorS3 + this.insulatorR3 },	//高压内半径
+			insulatorR5: function () { return this.c1rwidth + this.insulatorR4 },//高压外半径
+			m0: function () { return this.insulatorR5 * 2 + this.insulatorphase },//铁芯柱中心距
+			lravg: function () { return (this.insulatorR3 + this.insulatorR2) / 2 },//低压侧平均半径
+			hravg: function () { return (this.insulatorR4 + this.insulatorR5) / 2 },//高压侧平均半径
+			hlravg: function () { return (this.insulatorR3 + this.insulatorR4) / 2 },//漏磁通道平均半径
+			a1xr1d3: function () { return (this.c2rwidth - this.nomex2) * this.lravg / 3 },	//计算漏磁面积的中间变量
+			a12xr12: function () { return (this.insulatorS3 + this.nomex1 / 2 + this.nomex2 / 2) * this.hlravg },//计算漏磁面积的中间变量
+			a2xr2d3: function () { return (this.c1rwidth - this.nomex1) * this.hravg / 3 },//计算漏磁面积的中间变量
+			sigmaar: function () { return this.a1xr1d3 + this.a12xr12 + this.a2xr2d3 },
+			totallength1: function () { return this.hravg * 2 * 3.14159 * this.t1mid * 1e-3 },	//导线总长度
+			totallength2: function () { return this.lravg * 2 * 3.14159 * this.t2 * 1e-3 },
+			resister1: function () { return this.totallength1 * this.resister_ratio / this.ds1 },	//导线总电阻
+			resister2: function () { return this.totallength2 * this.resister_ratio / this.ds2 / this.parallelnum },
+			coilweight1: function () { return this.coil_density * this.totallength1 * this.ds1 * 1e-6 },	//绕组重量
+			coilweight2: function () { return this.coil_density * this.totallength2 * this.coil2a * this.coil2b * this.parallelnum * 1e-6 },
+			XL1calheight: function () { return this.c1alength - this.coil1d - this.nomex1 },			//绕组电抗计算高度
+			XL2calheight: function () { return this.c2alength - (this.coil2b - this.nomex2) * this.paxis },
+			Hk: function () { return (this.XL1calheight + this.XL2calheight) / 2 },		//平均电抗计算高度
+			kw1: function () { return 3.8 * Math.pow(this.freq * this.t1mid * this.ds1 * this.coil1d * this.rho1 / this.XL1calheight, 2) * 1e-7 },	//涡流损耗系数
+			rloss1: function () { return 3 * this.ip1 * this.ip1 * this.resister1 },	//电阻损耗
+			closs1: function () { return this.rloss1 * this.kw1 / 100 },			//涡流损耗
+			kw2: function () { return 3.8 * Math.pow(this.freq * this.t2 * this.ds2 * this.coil2a * this.parallelnum * this.rho1 / this.XL2calheight, 2) * 1e-7 },
+			rloss2: function () { return 3 * this.ip2 * this.ip2 * this.resister2 },
+			closs2: function () { return this.rloss2 * this.kw2 / 100 },
+			lamda: function () { return this.c1rwidth + this.c2rwidth + this.insulatorS3 - (this.nomex1 + this.nomex2) / 2 },
+			loadloss: function () { return this.rloss1 + this.closs1 + this.rloss2 + this.closs2 },	//负载损耗
+			totalloss: function () { return this.loadloss + this.Po },		//总损耗
+			rho1: function () { return 1 - this.lamda / 3.1415926 / this.Hk },			//洛氏系数     
+			uxpercent: function () { return 49.6 * this.freq * this.ip2 * this.t2 * this.sigmaar / 100 * this.rho1 * this.XLfactor / this.et / this.Hk / 1e5 },//电抗百分数
+			uapercent: function () { return this.loadloss / this.capacity / 10 },	//电阻百分数
+			ukpercent: function () { return Math.pow(this.uapercent * this.uapercent + this.uxpercent * this.uxpercent, 0.5) },	//短路阻抗百分数
+			Gz: function () { return 3 * this.H0 * this.Az * this.core_density / 1e7 },//铁芯柱
+			Ge: function () { return 4 * this.m0 * this.Az * this.core_density / 1e7 },//铁轭
+			Gtotal: function () { return this.Gz + this.Ge + this.Gdelta },		//铁芯总重
+			Ioa: function () { return this.Po / this.capacity / 10 },		//空载电流有功分量
+			Ior: function () { return this.K0 * (this.qc * this.Gtotal + 6 * Math.SQRT2 * this.Az * this.qj) / this.capacity / 10 },	//空载电流无功分量
+			Io: function () { return Math.sqrt(this.Ioa * this.Ioa + this.Ior * this.Ior) },	//空载电流
+			Sinner2: function () { return this.phase * (2 * 3.14159 * this.insulatorR2 - this.bt2 * this.Nt2) * this.XL2calheight / 1e6 },	//低压内散热面积，m^2
+			Souter2: function () { return this.phase * (2 * 3.14159 * this.insulatorR3) * this.XL2calheight / 1e6 },//低压外散热面积，m^2
+			Stotal2: function () { return this.Sinner2 + this.Souter2 },//低压总散热面积，m^2
+			TLV: function () { return this.KTL * Math.pow((this.rloss2 + this.closs2) / this.Stotal2, this.nTL) },
+			Sinner1: function () { return this.phase * (2 * 3.14159 * this.insulatorR4 - this.bt1 * this.Nt1) * this.layerheight[0] / 1e6 },
+			Souter1: function () { return this.phase * (2 * 3.14159 * this.insulatorR5) * this.layerheight[this.layerheight.length - 1] / 1e6 },
+			Stotal1: function () { return this.Sinner1 + this.Souter1 },
+			THV: function () { return this.KTH * Math.pow((this.rloss1 + this.closs1) / this.Stotal1, this.nTH) },
+			c1aMax:function(){return this.layerheight[this.hlayers_cnt-1]+this.hsections_cnt*this.sectiondistance},
+			layerheight: function () {
+				var arr = []; for (idx in this.coils1) {					//每层净高度
+					arr.push((this.coil1d + this.nomex1) * (this.coils1[idx] + 1) * this.hsections_cnt * this.mgaxis1);
+				}
+				return arr;
+			}
+		},
+		methods: {
+
+			deriveReport: function () {
+				MathJax.Hub.Typeset(document.getElementById('design'));
+				$('div.export').show();
+			},
+			calcKpo: function () {
+				this.Kpo = this.Po / this.Gtotal / this.unitloss;
+			},
+			calcPo: function () {
+				this.Po = this.Kpo * this.Gtotal * this.unitloss;
+			},
+			calcR1R2: function () {
+				this.insulatorS1 = this.insulatorS10 + this.insulatorS11 + this.insulatorS12;
+			},
+			calcS1: function () {
+				this.insulatorS10 = this.insulatorS1 - this.insulatorS11 - this.insulatorS12;
+			},
+			addsection: function () {
+				this.hsections.push(this.hsections_cnt);
+				this.hsections_cnt++;
+			},
+			removesection: function () {
+				this.hsections.pop();
+				this.hsections_cnt--;
+			},
+			addlayer: function () {
+				this.hlayers.push(this.hlayers_cnt);
+				this.hlayers_cnt++;
+			},
+			removelayer: function () {
+				this.hlayers.pop();
+				this.hlayers_cnt--;
+			},
+			evalturns: function () {
+				var _this = this;
+				_this.coils1 = [];
+				$('#hsl li input').each(function (idx, ele) { _this.coils1[idx] = parseFloat(ele.value); });
+				_this.coils1.push(0);
+				_this.coils1.pop();
+			}
+		},
+		watch: {
+
+			H0comp2: function (newvalue, oldvalue) {
+				this.H02 = parseFloat(this.c2alength) + newvalue;
+			},
+			H02: function (newvalue, oldvalue) {
+				this.H0comp2 = newvalue - parseFloat(this.c2alength);
+			},
+			H0comp: function (newvalue, oldvalue) {
+				this.H0 = parseFloat(this.c1alength) + newvalue;
+			},
+			H0: function (newvalue, oldvalue) {
+				this.H0comp = newvalue - parseFloat(this.c1alength);
+			},
+			t1primemax: function (newvalue, oldvalue) {
+				this.Bm1 = 1e7 * 1.05 * this.vp1 / newvalue / 50 / 4.44 / this.Az;
+			},
+			coil1d: function (newvalue, oldvalue) {
+				this.j1 = this.ip1 / (newvalue * newvalue * 3.1415926 / 4);
+			},
+			ds2: function (newvalue, oldvalue) {
+				this.j2 = this.ip2 / this.parallelnum / newvalue;
+			},
+			coreD: function (newvalue) {
+				this.insulator.R1 = newvalue / 2;
+			},
+			sectiondistance: function (newvalue) {
+				var arr = this.layerheight.concat();
+				this.c1alength = arr.sort().pop() + parseFloat(newvalue) * (this.hsections_cnt - 1);
+			}
+		},
+		filters: {
+			forcewidth: function (value, width) {
+				/*width 为整数部分的宽度*/
+				return value;
+			},
+			numformat: function (value, length) {
+				value = parseFloat(value);
+				if (Isinteger(value) || Isinteger(value * 10 ** length)) {
+					return value;
+				}
+				var temp=value * 10 ** length;
+				while(temp%10==0){
+					length--;
+				}
+				length = length<0?0:length;
+				if (value != 0 && !value) {
+					return 0;
+				} else {
+					return !value.toFixed(length) ? 0 : value.toFixed(length);
+				}
+			},
+			intformat: function (value){
+				return !Math.round(value) ? 0 : Math.round(value);
+			}
+		}
+	});
+</script>
+<script type="text/x-mathjax-config">
+	MathJax.Hub.Config({
+		showProcessingMessages: false,
+		elements: [''],
+		messageStyle: "none",
+		extensions: ["tex2jax.js"],
+		jax: ["input/TeX", "output/HTML-CSS"],
+		tex2jax: {
+			inlineMath:  [ ["$", "$"] ],
+			displayMath: [ ["$$","$$"] ],
+			skipTags: ['script', 'noscript', 'style', 'textarea', 'pre','code','a'],
+			ignoreClass:"comment-content"
+		},
+		"HTML-CSS": {
+			availableFonts: ["STIX","TeX"],
+			showMathMenu: false
+		}
+	});
+</script>
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=AM_HTMLorMML-full"></script>
+</html>
